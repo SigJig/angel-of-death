@@ -1,7 +1,5 @@
 
-#ifndef LEXER_HEADER_ONLY
 #include "lexer.h"
-#endif
 
 lex_lexer* lex_create()
 {
@@ -31,7 +29,7 @@ lex_e_status lex_init(lex_lexer* lexer)
     lexer->line = 1;
     lexer->col = 1;
 
-    return 0;
+    return OK;
 }
 
 void lex_free(lex_lexer* lexer)
@@ -39,14 +37,14 @@ void lex_free(lex_lexer* lexer)
     free(lexer);
 }
 
-lex_e_status lext_next_char(lex_lexer* lexer, char* dest)
+lex_e_status lex_next_char(lex_lexer* lexer, char* dest)
 {
     if (lexer->fp == NULL)
         return FILE_ERROR;
 
     *dest = (char)fgetc(lexer->fp);
 
-    if (dest == EOF)
+    if (*dest == EOF)
     {
         lexer->eof_reached = true;
         *dest = '\0';

@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define LEXER_HEADER_ONLY
-
 typedef enum
 {
     DIGIT,
@@ -49,7 +47,3 @@ void lex_free(lex_lexer* lexer);
 
 lex_e_status lex_advance(lex_lexer* lexer);
 lex_e_status lex_next_char(lex_lexer* lexer, char* dest);
-
-#ifdef LEXER_HEADER_ONLY
-#include "lexer.c"
-#endif
