@@ -1,0 +1,47 @@
+// in accordance with: https://edge.fscdn.org/assets/img/documents/ged551-86e5da89bae6ec7ba6f10e6794275d7e.pdf
+// note this grammar file is meant for people, and is not following a specific format
+
+gedcom_line: level delim [optional_xref_ID] tag [optional_line_value] terminator
+
+level: /[0-9]+/
+
+digit: /[0-9]/
+alpha: /[A-Za-z_]/
+alphanum: alpha | digit
+
+otherchar: /[!-"]/              // 0x21-0x22
+        |  /[\$%&'\(\)\*\+,-\.\/]/    // 0x24-0x2F
+        |  /[:;<=>\?]/           // 0x3A-0x3F
+        |  /[\[\\\]\^]/              // 0x5B-0x5E
+        |  "`"                  // 0x60
+        |  /[\{\|\}~]/             // 0x7B-0x7E
+        |  [0x80-0xFE]            // ANSEL chars above 127
+
+any_char: alpha
+        | digit
+        | otherchar
+        | "#"       // 0x23
+        | " "       // 0x20 (space)
+        | /@@/      // 0x40 + 0x40
+
+delim: " " // 0x20 (space)
+escape: "@" "#" escape_text "@" non_at // 0x40 0x23 escape_text 0x40 non_at
+escape_text: any_char+
+
+line_item: any_char+ | escape+
+line_value: pointer | line_item
+
+non_at: alpha | digit | otherchar | " " | "#" // " " = 0x20, "#" = 0x23
+null: /\b\b/
+
+optional_line_value: delim line_value
+optional_xref_ID: xref_ID delim
+
+pointer: "@" alphanum pointer_string "@" // 0x40
+pointer_char: non_at
+pointer_string: null | pointer_char+
+
+tag: alphanum+
+terminator: "\r" | "\n" | "\r\n" | "\n\r"
+
+xref_ID: pointer
