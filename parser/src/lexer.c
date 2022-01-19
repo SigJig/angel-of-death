@@ -17,7 +17,7 @@ lex_lexer* lex_create()
 
 lex_e_status lex_init(lex_lexer* lexer)
 {
-    if (!sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP))
+    if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0)
     {
         return LS_INIT_FAIL;
     }
@@ -30,7 +30,7 @@ lex_e_status lex_init(lex_lexer* lexer)
     lexer->token_first = NULL;
     lexer->token_last = NULL;
 
-    lex_reset_state(lexer);
+    _lex_reset_state(lexer);
 
     return LS_OK;
 }
@@ -51,7 +51,7 @@ void lex_destroy(lex_lexer* lexer)
         do
         {
             next = tok->next;
-            lex_token_destroy(lexer, tok);
+            _lex_del_token(lexer, tok);
         } while (next != NULL);
     }
 
@@ -72,7 +72,7 @@ lex_e_status lex_feed(lex_lexer* lexer, char c)
         lexer->lookahead = c;
     }
 
-    return lex_advance(lexer);
+    return _lex_advance(lexer);
 }
 
 /*
@@ -111,7 +111,7 @@ static bool _is_otherchar(char c)
 }
 
 static bool _is_space(char c) { return c == '\x20'; }
-static bool _is_hashtag(char c) { return c == '#'; }
+static bool _is_hash_tag(char c) { return c == '#'; }
 static bool _is_at(char c) { return c == '@'; }
 
 static bool _is_anychar_noat(char c)
@@ -120,7 +120,7 @@ static bool _is_anychar_noat(char c)
         _is_alnum(c) ||
         _is_otherchar(c) ||
         _is_space(c) ||
-        _is_hashtag(c)
+        _is_hash_tag(c)
     );
 }
 
@@ -172,8 +172,6 @@ void _lex_reset_state(lex_lexer* lexer)
         lexer->state.possible_types[i] = (lex_token_t)i;
         lexer->state.status[i] = LV_NOT;
     }
-
-    lexer->state.possibles_length = (int)LT_INVALID;
 }
 
 // does not currently process current character if done by not
@@ -181,17 +179,18 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 {
     // if eof has not been reached and lookahead is empty, we need to wait for more characters
     // before continuing
-    if (!lexer->eof_reached && lexer->lookahead == '\0')
+    if (!lexer->eof_reached && lexer->current == '\0')
         return LS_NOT_INIT;
 
     char c = lexer->current;
 
-    for (lex_token_t type = 0; type < LT_INVALID; type++)
+    for (int i = 0; i < (int)LT_INVALID; i++)
     {
-        if (lexer->state.possible_types[(int)type] == LT_INVALID) continue;
+        lex_token_t type = lex_token_t_from_int(i);
+        if (lexer->state.possible_types[i] == LT_INVALID) continue;
 
         _lex_e_valid status = _lex_validate(lexer, type, c);
-        _lex_e_valid* status_cache = &lexer->state.status[(int)type];
+        _lex_e_valid* status_cache = &lexer->state.status[i];
 
         switch (status)
         {
@@ -201,8 +200,15 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 
                 goto remove;
             }
-            case LV_CONT: goto nothing;
-            case LV_DONE: goto done;
+            case LV_CONT:
+            {
+                goto nothing;
+            }
+            case LV_DONE:
+            {
+                sbuilder_write_char(&lexer->state.builder, c);
+                goto done;
+            }
             case LV_DONE_WHEN_NOT:
             {
                 *status_cache = LV_DONE_WHEN_NOT;
@@ -220,7 +226,7 @@ lex_e_status _lex_advance(lex_lexer* lexer)
             continue;
 
         remove:
-            lexer->state.possible_types[(int)type] = LT_INVALID;
+            lexer->state.possible_types[i] = LT_INVALID;
 
             continue;
         done:
@@ -229,6 +235,8 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 
             return LS_OK;
     }
+
+    sbuilder_write_char(&lexer->state.builder, c);
 
     return LS_NOT_OK;
 }

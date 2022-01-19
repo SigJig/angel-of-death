@@ -1,4 +1,7 @@
 
+#ifndef LEXER_H
+#define LEXER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -18,6 +21,24 @@ typedef enum
     LT_INVALID // should always be last
 } lex_token_t;
 
+// convert to
+const lex_token_t _lex_tok_cvtable[] = {
+    LT_NUMBER,
+    LT_POINTER,
+    LT_TERMINATOR,
+    LT_S_ALNUM,
+    LT_ESCAPE_TEXT_NOAT,
+    LT_AT,
+    LT_DOUBLE_AT,
+    LT_HASH_TAG,
+    LT_DELIM,
+    LT_INVALID
+};
+
+inline lex_token_t lex_token_t_from_int(int i)
+{
+    return _lex_tok_cvtable[i];
+}
 
 typedef enum {
     LS_OK = 0,
@@ -37,7 +58,6 @@ typedef enum
     LV_DONE_WHEN_NOT // done when the validator returns not
 } _lex_e_valid;
 
-
 typedef struct lex_token
 {
     lex_token_t type;
@@ -55,7 +75,6 @@ typedef struct
         sbuilder builder;
         lex_token_t possible_types[(int)LT_INVALID]; // contains each type
         _lex_e_valid status[(int)LT_INVALID]; // contains status for each type
-        int possibles_length;
     } state;
 
     bool eof_reached;
@@ -95,3 +114,5 @@ lex_e_status _lex_advance(lex_lexer* lexer);
 
 // returns 0 if invalid, 1 if valid and can continue, and 2 if valid and can not continue
 _lex_e_valid _lex_validate(lex_lexer* lexer, lex_token_t type, char c);
+
+#endif // LEXER_H
