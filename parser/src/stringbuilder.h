@@ -34,6 +34,7 @@ int sbuilder_init(sbuilder* builder, size_t cap)
     if (cap < 1)
     {
         builder->mem = NULL;
+        return 1;
     }
     else
     {
@@ -56,33 +57,30 @@ void sbuilder_free(sbuilder* builder)
 
 void sbuilder_reset_mem(sbuilder *builder)
 {
-    memset(builder->mem, 0, builder->cap);
+    memset(builder->mem, 0, builder->cap + 1);
 }
 
 int sbuilder_add(sbuilder* builder, const char* addition)
 {
+    if (!builder->cap)
+        return 2;
+
     int length = strlen(addition);
     int initial_length = builder->len;
     builder->len += length;
 
-    if (builder->len >= (builder->cap - 1))
+    if (builder->len >= builder->cap)
     {
         builder->cap *= DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
         
         if (builder->mem)
         {
-            builder->mem = (char*)realloc(builder->mem, sizeof(char) * builder->cap);
+            builder->mem = (char*)realloc(builder->mem, sizeof(char) * (builder->cap + 1));
             
             if (!builder->mem)
                 return 1;
 
-            memset(builder->mem + builder->len, 0, builder->cap - builder->len);
-        }
-        else
-        {
-            // If memory is NULL (cap was 0 at initialization)
-            builder->mem = (char*)malloc(sizeof(char) * builder->cap);
-            sbuilder_reset_mem(builder);
+            memset(builder->mem + builder->len, 0, builder->cap + 1 - builder->len);
         }
     }
 
