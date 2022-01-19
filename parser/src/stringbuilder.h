@@ -17,7 +17,7 @@ typedef struct
 
 int sbuilder_init(sbuilder* builder, size_t cap);
 void sbuilder_free(sbuilder* builder);
-void sbuilder_reset(sbuilder* builder);
+void sbuilder_reset_mem(sbuilder* builder);
 
 int sbuilder_add(sbuilder* builder, const char* addition);
 
@@ -28,16 +28,20 @@ char* sbuilder_return(sbuilder* builder);
 
 int sbuilder_init(sbuilder* builder, size_t cap)
 {
-    if (cap < 1)
-        return 1;
-
-    builder->mem = (char*)calloc(cap + 1, sizeof(char));
-
-    if (!builder->mem)
-        return 2;
-
     builder->cap = cap;
     builder->len = 0;
+
+    if (cap < 1)
+    {
+        builder->mem = NULL;
+    }
+    else
+    {
+        builder->mem = (char*)calloc(cap + 1, sizeof(char));
+
+        if (!builder->mem)
+            return 2;
+    }
 
     return 0;
 }
@@ -50,7 +54,7 @@ void sbuilder_free(sbuilder* builder)
     free(builder->mem);
 }
 
-void sbuilder_reset(sbuilder *builder)
+void sbuilder_reset_mem(sbuilder *builder)
 {
     memset(builder->mem, 0, builder->cap);
 }
@@ -64,12 +68,22 @@ int sbuilder_add(sbuilder* builder, const char* addition)
     if (builder->len >= (builder->cap - 1))
     {
         builder->cap *= DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
-        builder->mem = (char*)realloc(builder->mem, sizeof(char) * builder->cap);
         
-        if (!builder->mem)
-            return 1;
+        if (builder->mem)
+        {
+            builder->mem = (char*)realloc(builder->mem, sizeof(char) * builder->cap);
+            
+            if (!builder->mem)
+                return 1;
 
-        memset(builder->mem + builder->len, 0, builder->cap - builder->len);
+            memset(builder->mem + builder->len, 0, builder->cap - builder->len);
+        }
+        else
+        {
+            // If memory is NULL (cap was 0 at initialization)
+            builder->mem = (char*)malloc(sizeof(char) * builder->cap);
+            sbuilder_reset_mem(builder);
+        }
     }
 
     memcpy(builder->mem + initial_length, addition, length);
@@ -84,9 +98,12 @@ const char* sbuilder_to_string(const sbuilder* builder)
 
 char* sbuilder_return(sbuilder* builder)
 {
+    if (!builder->mem)
+        return NULL;
+
     char* ret = strdup(builder->mem);
 
-    sbuilder_reset(builder);
+    sbuilder_reset_mem(builder);
 
     return ret;
 }
