@@ -29,6 +29,16 @@ typedef enum
 
 typedef enum {OK = 0, GEN_ERROR, FILE_ERROR, LEOF} lex_e_status;
 
+typedef struct lex_token
+{
+    lex_e_token kind;
+    const char* lexeme;
+    size_t line;
+    size_t col;
+
+    lex_token* next;
+} lex_token;
+
 typedef struct
 {
     FILE* fp; // Prob better for the file to feed the lexer, and construct a list of tokens
@@ -37,7 +47,14 @@ typedef struct
     char lookahead;
     size_t line;
     size_t col;
+    lex_token* token_first;
+    lex_token* token_last;
 } lex_lexer;
+
+lex_token* lex_token_create(lex_lexer* lexer, lex_e_token kind, const char* lexeme);
+
+// Beware this does not set to null where another token might have ->next as this token
+void lex_token_destroy(lex_lexer* lexer, lex_token* token);
 
 lex_lexer* lex_create();
 void lex_destroy(lex_lexer* lexer);

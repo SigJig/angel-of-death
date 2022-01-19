@@ -13,9 +13,9 @@ otherchar: /[!-"]/              // 0x21-0x22
         |  /[\$%&'\(\)\*\+,-\.\/]/    // 0x24-0x2F
         |  /[:;<=>\?]/           // 0x3A-0x3F
         |  /[\[\\\]\^]/              // 0x5B-0x5E
-        |  "`"                  // 0x60
         |  /[\{\|\}~]/             // 0x7B-0x7E
         |  [0x80-0xFE]            // ANSEL chars above 127
+        |  "`"                  // 0x60
 
 any_char: alpha
         | digit
@@ -39,7 +39,7 @@ optional_xref_ID: xref_ID delim
 
 pointer: "@" alphanum pointer_string "@" // 0x40
 pointer_char: non_at
-pointer_string: null | pointer_char+
+pointer_string: pointer_char*
 
 tag: alphanum+
 terminator: "\r" | "\n" | "\r\n" | "\n\r"
