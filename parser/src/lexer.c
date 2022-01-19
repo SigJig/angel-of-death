@@ -37,6 +37,8 @@ lex_e_status lex_init(lex_lexer* lexer)
 
 void lex_free(lex_lexer* lexer)
 {
+    if (!lexer) return;
+
     lex_destroy(lexer);
     free(lexer);
 }
@@ -44,17 +46,17 @@ void lex_free(lex_lexer* lexer)
 void lex_destroy(lex_lexer* lexer)
 {
     lex_token* tok = lexer->token_first;
-    lex_token* next = tok;
+    lex_token* tmp = NULL;
 
-    if (tok)
+    while (tok != NULL)
     {
-        while (next != NULL)
-        {
-            next = tok->next;
-            _lex_del_token(lexer, tok);
-            tok = next;
-        }
+        tmp = tok;
+        tok = tok->next;
+        _lex_del_token(lexer, tmp);
     }
+
+    lexer->token_first = NULL;
+    lexer->token_last = NULL;
 
     sbuilder_free(&lexer->state.builder);
 }
@@ -161,9 +163,14 @@ lex_token* _lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
 
 void _lex_del_token(lex_lexer* lexer, lex_token* token)
 {
+    if (!token) return;
+
     // lexeme has been made by stringbuilder and must be free after use
     if (token->lexeme)
+    {
         free(token->lexeme);
+        token->lexeme = NULL;
+    }
 
     free(token);
 }

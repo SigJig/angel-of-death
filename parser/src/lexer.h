@@ -71,7 +71,8 @@ typedef struct lex_token
 
 typedef struct
 {
-    struct {
+    struct
+    {
         sbuilder builder;
         lex_token_t possible_types[(int)LT_INVALID]; // contains each type
         _lex_e_valid status[(int)LT_INVALID]; // contains status for each type

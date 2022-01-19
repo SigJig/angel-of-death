@@ -28,6 +28,7 @@ void sbuilder_free(sbuilder* builder)
         return;
 
     free(builder->mem);
+    builder->mem = NULL;
 }
 
 void sbuilder_clear(sbuilder *builder)
