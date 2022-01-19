@@ -70,7 +70,7 @@ int sbuilder_write(sbuilder* builder, const char* addition)
     int verified = _sbuilder_verify_cap(builder);
     if (verified != 0) return verified;
 
-    memcpy(builder->mem + initial_length, addition, length);
+    strncpy(builder->mem + initial_length, addition, length);
 
     return 0;
 }
@@ -108,7 +108,8 @@ char* sbuilder_return(sbuilder* builder)
     if (!builder->mem)
         return NULL;
 
-    char* ret = strdup(builder->mem);
+    char* ret = (char*)calloc(builder->len + 1, sizeof ret);
+    strncpy(ret, builder->mem, builder->len);
 
     sbuilder_clear(builder);
 
