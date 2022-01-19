@@ -5,7 +5,7 @@ int main(int argc, char** argv)
 {
     sbuilder builder;
 
-    sbuilder_init(&builder, DEFAULT_CAP);
+    sbuilder_init(&builder, SBUILDER_DEFAULT_CAP);
 
     char* hmm[10] = {
         "the ", "quick ", "brown",  " fox ", "jumps", " over ", "the ", "lazy ", "dog", "."

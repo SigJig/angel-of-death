@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEFAULT_CAP 100
-#define DEFAULT_CAP_MULT 2
+#define SBUILDER_DEFAULT_CAP 100
+#define SBUILDER_DEFAULT_CAP_MULT 2
 
 typedef struct
 {
@@ -21,6 +21,7 @@ void sbuilder_clear(sbuilder* builder);
 
 int sbuilder_write(sbuilder* builder, const char* addition);
 
+char sbuilder_back(sbuilder* builder);
 const char* sbuilder_to_string(const sbuilder* builder);
 
 // Clears the sbuilder to be reused, and then returns a heap allocated char* (must be freed)
@@ -72,7 +73,7 @@ int sbuilder_write(sbuilder* builder, const char* addition)
 
     if (builder->len >= builder->cap)
     {
-        builder->cap *= DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
+        builder->cap *= SBUILDER_DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
         
         if (builder->mem)
         {
@@ -88,6 +89,13 @@ int sbuilder_write(sbuilder* builder, const char* addition)
     memcpy(builder->mem + initial_length, addition, length);
 
     return 0;
+}
+
+char sbuilder_back(sbuilder* builder)
+{
+    if (!builder->mem || !builder->len) return '\0';
+
+    return builder->mem[builder->len - 1];
 }
 
 const char* sbuilder_to_string(const sbuilder* builder)
