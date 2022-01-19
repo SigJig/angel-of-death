@@ -17,13 +17,13 @@ typedef struct
 
 int sbuilder_init(sbuilder* builder, size_t cap);
 void sbuilder_free(sbuilder* builder);
-void sbuilder_reset_mem(sbuilder* builder);
+void sbuilder_clear(sbuilder* builder);
 
-int sbuilder_add(sbuilder* builder, const char* addition);
+int sbuilder_write(sbuilder* builder, const char* addition);
 
 const char* sbuilder_to_string(const sbuilder* builder);
 
-// Frees the sbuilder to be reused, and then returns a heap allocated char* (must be freed)
+// Clears the sbuilder to be reused, and then returns a heap allocated char* (must be freed)
 char* sbuilder_return(sbuilder* builder);
 
 int sbuilder_init(sbuilder* builder, size_t cap)
@@ -55,12 +55,13 @@ void sbuilder_free(sbuilder* builder)
     free(builder->mem);
 }
 
-void sbuilder_reset_mem(sbuilder *builder)
+void sbuilder_clear(sbuilder *builder)
 {
+    builder->len = 0;
     memset(builder->mem, 0, builder->cap + 1);
 }
 
-int sbuilder_add(sbuilder* builder, const char* addition)
+int sbuilder_write(sbuilder* builder, const char* addition)
 {
     if (!builder->cap)
         return 2;
@@ -101,7 +102,7 @@ char* sbuilder_return(sbuilder* builder)
 
     char* ret = strdup(builder->mem);
 
-    sbuilder_reset_mem(builder);
+    sbuilder_clear(builder);
 
     return ret;
 }

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "stringbuilder.h"
 
 typedef enum
 {
@@ -36,7 +37,7 @@ typedef struct lex_token
     size_t line;
     size_t col;
 
-    lex_token* next;
+    struct lex_token* next;
 } lex_token;
 
 typedef struct

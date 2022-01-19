@@ -14,7 +14,7 @@ static bool _is_alpha(char c)
 
 static bool _is_alnum(char c)
 {
-    return _isdigit(c) || _is_alpha(c);
+    return _is_digit(c) || _is_alpha(c);
 }
 
 static bool _is_otherchar(char c)
@@ -25,12 +25,12 @@ static bool _is_otherchar(char c)
         ':' <= c && c <= '?' ||
         '[' <= c && c <= '^' ||
         '{' <= c && c <= '~' ||
-        0x80 <= c && c <= 0xFE ||
+        '\x80' <= c && c <= '\xFE' ||
         c == '`'
     );
 }
 
-static bool _is_space(char c) { return c == 0x20; }
+static bool _is_space(char c) { return c == '\x20'; }
 static bool _is_hashtag(char c) { return c == '#'; }
 static bool _is_at(char c) { return c == '@'; }
 
@@ -143,6 +143,8 @@ lex_e_status lex_feed(lex_lexer* lexer, char c)
 
 lex_e_status lex_advance(lex_lexer* lexer)
 {
+    // if eof has not been reached and lookahead is empty, we need to wait for more characters
+    // before continuing
     if (!lexer->eof_reached && lexer->lookahead == '\0')
         return NON_INIT;
 
