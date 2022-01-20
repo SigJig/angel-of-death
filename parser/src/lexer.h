@@ -22,23 +22,9 @@ typedef enum
 } lex_token_t;
 
 // convert to
-const lex_token_t _lex_tok_cvtable[] = {
-    LT_NUMBER,
-    LT_POINTER,
-    LT_TERMINATOR,
-    LT_S_ALNUM,
-    LT_ESCAPE_TEXT_NOAT,
-    LT_AT,
-    LT_DOUBLE_AT,
-    LT_HASH_TAG,
-    LT_DELIM,
-    LT_INVALID
-};
+extern const lex_token_t _lex_tok_cvtable[];
 
-inline lex_token_t lex_token_t_from_int(int i)
-{
-    return _lex_tok_cvtable[i];
-}
+lex_token_t lex_token_t_from_int(int i);
 
 typedef enum {
     LS_OK = 0,
