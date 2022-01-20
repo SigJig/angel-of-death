@@ -13,7 +13,7 @@ int sbuilder_init(sbuilder* builder, size_t cap)
     }
     else
     {
-        builder->mem = (char*)calloc(cap + 1, sizeof(char));
+        builder->mem = (char*)calloc(cap + 1, sizeof *builder->mem);
 
         if (!builder->mem)
             return 2;
@@ -47,7 +47,7 @@ int _sbuilder_verify_cap(sbuilder* builder)
         
         if (builder->mem)
         {
-            builder->mem = (char*)realloc(builder->mem, sizeof(char) * (builder->cap + 1));
+            builder->mem = (char*)realloc(builder->mem, (sizeof *builder->mem) * (builder->cap + 1));
             
             if (!builder->mem)
                 return 1;
