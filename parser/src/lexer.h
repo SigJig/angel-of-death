@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
 #include "stringbuilder.h"
+#include "errcodes.h"
 
 typedef enum
 {
@@ -25,15 +27,6 @@ typedef enum
 extern const lex_token_t _lex_tok_cvtable[];
 
 lex_token_t lex_token_t_from_int(int i);
-
-typedef enum {
-    LS_OK = 0,
-    LS_NOT_OK, // general not ok, does not necessarily mean error
-    LS_FILE_ERROR,
-    LS_INIT_FAIL,
-    LS_NOT_INIT,
-    LS_GEN_ERROR
-} lex_e_status;
 
 // used by the validator
 typedef enum
@@ -87,10 +80,10 @@ lex_lexer* lex_create();
 void lex_free(lex_lexer* lexer);
 
 // used when lexer is not heap allocated
-lex_e_status lex_init(lex_lexer* lexer);
+e_status lex_init(lex_lexer* lexer);
 void lex_destroy(lex_lexer* lexer);
 
-lex_e_status lex_feed(lex_lexer* lexer, char c);
+e_status lex_feed(lex_lexer* lexer, char c);
 
 
 // Internal functions
@@ -103,7 +96,7 @@ lex_token* _lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme);
 // Beware this does not set to null where another token might have ->next as this token
 void _lex_del_token(lex_lexer* lexer, lex_token* token);
 
-lex_e_status _lex_advance(lex_lexer* lexer);
+e_status _lex_advance(lex_lexer* lexer);
 
 // returns 0 if invalid, 1 if valid and can continue, and 2 if valid and can not continue
 _lex_e_valid _lex_validate(lex_lexer* lexer, lex_token_t type, char c);

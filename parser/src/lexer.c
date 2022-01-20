@@ -24,7 +24,7 @@ lex_lexer* lex_create()
 {
     lex_lexer* lexer = (lex_lexer*)malloc(sizeof *lexer);
 
-    if (lex_init(lexer) != LS_OK)
+    if (lex_init(lexer) != ST_OK)
     {
         sbuilder_destroy(&lexer->state.builder);
         sbuilder_destroy(&lexer->buf);
@@ -36,16 +36,16 @@ lex_lexer* lex_create()
     return lexer;
 }
 
-lex_e_status lex_init(lex_lexer* lexer)
+e_status lex_init(lex_lexer* lexer)
 {
     if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0)
     {
-        return LS_INIT_FAIL;
+        return ST_INIT_FAIL;
     }
 
     if (sbuilder_init(&lexer->buf, SBUILDER_DEFAULT_CAP) != 0)
     {
-        return LS_INIT_FAIL;
+        return ST_INIT_FAIL;
     }
 
     lexer->eof_reached = false;
@@ -58,7 +58,7 @@ lex_e_status lex_init(lex_lexer* lexer)
 
     _lex_reset_state(lexer);
 
-    return LS_OK;
+    return ST_OK;
 }
 
 void lex_free(lex_lexer* lexer)
@@ -88,7 +88,7 @@ void lex_destroy(lex_lexer* lexer)
     sbuilder_destroy(&lexer->buf);
 }
 
-lex_e_status lex_feed(lex_lexer* lexer, char c)
+e_status lex_feed(lex_lexer* lexer, char c)
 {
     lexer->current = lexer->lookahead;
     
@@ -214,14 +214,14 @@ void _lex_reset_state(lex_lexer* lexer)
 }
 
 // does not currently process current character if done by not
-lex_e_status _lex_advance(lex_lexer* lexer)
+e_status _lex_advance(lex_lexer* lexer)
 {
     // if eof has not been reached and lookahead is empty, we need to wait for more characters
     // before continuing
     if (lexer->eof_reached)
-        return LS_NOT_OK;
+        return ST_NOT_OK;
     else if (lexer->current == '\0')
-        return LS_NOT_INIT;
+        return ST_NOT_INIT;
 
     char c = lexer->current;
 
@@ -260,7 +260,7 @@ lex_e_status _lex_advance(lex_lexer* lexer)
             default:
             {
                 // TODO: Should warn / error
-                return LS_GEN_ERROR;
+                return ST_GEN_ERROR;
             }
         }
 
@@ -283,26 +283,26 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 
             if (!write)
             {
-                lex_e_status nxt_status = _lex_advance(lexer);
+                e_status nxt_status = _lex_advance(lexer);
 
-                if (!(nxt_status == LS_OK || nxt_status == LS_NOT_OK))
+                if (!(nxt_status == ST_OK || nxt_status == ST_NOT_OK))
                 {
                     return nxt_status;
                 }
             }
 
-            return LS_OK;
+            return ST_OK;
     }
 
     if (!lexer->state.possible_length)
     {
         // TODO err
-        return LS_GEN_ERROR;
+        return ST_GEN_ERROR;
     }
 
     sbuilder_write_char(&lexer->state.builder, c);
 
-    return LS_NOT_OK;
+    return ST_NOT_OK;
 }
 
 _lex_e_valid _lex_validate(lex_lexer* lexer, lex_token_t type, char c)
