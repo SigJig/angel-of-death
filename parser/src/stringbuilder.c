@@ -22,7 +22,7 @@ int sbuilder_init(sbuilder* builder, size_t cap)
     return 0;
 }
 
-void sbuilder_free(sbuilder* builder)
+void sbuilder_destroy(sbuilder* builder)
 {
     if (!builder->mem)
         return;

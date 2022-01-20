@@ -22,7 +22,7 @@ lex_token_t lex_token_t_from_int(int i)
 
 lex_lexer* lex_create()
 {
-    lex_lexer* lexer = (lex_lexer*)malloc(sizeof lexer);
+    lex_lexer* lexer = (lex_lexer*)malloc(sizeof(lex_lexer));
 
     if (lex_init(lexer) != LS_OK)
     {
@@ -77,7 +77,7 @@ void lex_destroy(lex_lexer* lexer)
     lexer->token_first = NULL;
     lexer->token_last = NULL;
 
-    sbuilder_free(&lexer->state.builder);
+    sbuilder_destroy(&lexer->state.builder);
 }
 
 lex_e_status lex_feed(lex_lexer* lexer, char c)
@@ -158,7 +158,7 @@ static bool _is_line_feed(char c)
 
 lex_token* _lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
 {
-    lex_token* newtok = (lex_token*)malloc(sizeof newtok);
+    lex_token* newtok = (lex_token*)malloc(sizeof(lex_token));
 
     if (!newtok)
         return NULL;

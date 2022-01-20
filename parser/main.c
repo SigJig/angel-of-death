@@ -7,6 +7,9 @@ int main(int argc, char** argv)
     lex_lexer* lexer = lex_create();
 
     const char* teststring = "1921 19 @a #@ alnum @@";
+    printf("sizeof lexer: %zu\nsizeof token: %zu\nsizeof sbuilder: %zu\n", sizeof(lex_lexer), sizeof(lex_token), sizeof(sbuilder));
+    printf("sizeof char*: %zu\nsizeof size_t: %zu", sizeof(char*), sizeof(size_t));
+
 
     for (int i = 0; i < 23; i++)
     {

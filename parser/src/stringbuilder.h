@@ -8,15 +8,17 @@
 #define SBUILDER_DEFAULT_CAP 100
 #define SBUILDER_DEFAULT_CAP_MULT 2
 
+// 24b
 typedef struct
 {
+    // 8b * 3
     char* mem;
     size_t len;
     size_t cap;
 } sbuilder;
 
 int sbuilder_init(sbuilder* builder, size_t cap);
-void sbuilder_free(sbuilder* builder);
+void sbuilder_destroy(sbuilder* builder);
 void sbuilder_clear(sbuilder* builder);
 
 int _sbuilder_verify_cap(sbuilder* builder);
