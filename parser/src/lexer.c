@@ -22,10 +22,12 @@ lex_token_t lex_token_t_from_int(int i)
 
 lex_lexer* lex_create()
 {
-    lex_lexer* lexer = (lex_lexer*)malloc(sizeof(lex_lexer));
+    lex_lexer* lexer = (lex_lexer*)malloc(sizeof *lexer);
 
     if (lex_init(lexer) != LS_OK)
     {
+        sbuilder_destroy(&lexer->state.builder);
+        sbuilder_destroy(&lexer->buf);
         free(lexer);
 
         return NULL;
@@ -37,6 +39,11 @@ lex_lexer* lex_create()
 lex_e_status lex_init(lex_lexer* lexer)
 {
     if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0)
+    {
+        return LS_INIT_FAIL;
+    }
+
+    if (sbuilder_init(&lexer->buf, SBUILDER_DEFAULT_CAP) != 0)
     {
         return LS_INIT_FAIL;
     }
@@ -78,6 +85,7 @@ void lex_destroy(lex_lexer* lexer)
     lexer->token_last = NULL;
 
     sbuilder_destroy(&lexer->state.builder);
+    sbuilder_destroy(&lexer->buf);
 }
 
 lex_e_status lex_feed(lex_lexer* lexer, char c)
@@ -158,7 +166,7 @@ static bool _is_line_feed(char c)
 
 lex_token* _lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
 {
-    lex_token* newtok = (lex_token*)malloc(sizeof(lex_token));
+    lex_token* newtok = (lex_token*)malloc(sizeof *newtok);
 
     if (!newtok)
         return NULL;
@@ -201,6 +209,8 @@ void _lex_reset_state(lex_lexer* lexer)
         lexer->state.possible_types[i] = (lex_token_t)i;
         lexer->state.status[i] = LV_NOT;
     }
+
+    lexer->state.possible_length = (int)LT_INVALID;
 }
 
 // does not currently process current character if done by not
@@ -208,7 +218,9 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 {
     // if eof has not been reached and lookahead is empty, we need to wait for more characters
     // before continuing
-    if (!lexer->eof_reached && lexer->current == '\0')
+    if (lexer->eof_reached)
+        return LS_NOT_OK;
+    else if (lexer->current == '\0')
         return LS_NOT_INIT;
 
     char c = lexer->current;
@@ -220,6 +232,7 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 
         _lex_e_valid status = _lex_validate(lexer, type, c);
         _lex_e_valid* status_cache = &lexer->state.status[i];
+        bool write = false;
 
         switch (status)
         {
@@ -235,7 +248,7 @@ lex_e_status _lex_advance(lex_lexer* lexer)
             }
             case LV_DONE:
             {
-                sbuilder_write_char(&lexer->state.builder, c);
+                write = true;
                 goto done;
             }
             case LV_DONE_WHEN_NOT:
@@ -256,13 +269,35 @@ lex_e_status _lex_advance(lex_lexer* lexer)
 
         remove:
             lexer->state.possible_types[i] = LT_INVALID;
+            lexer->state.possible_length--;
 
             continue;
         done:
+            if (write)
+            {
+                sbuilder_write_char(&lexer->state.builder, c);
+            }
+
             _lex_add_token(lexer, type, sbuilder_return(&lexer->state.builder));
             _lex_reset_state(lexer);
 
+            if (!write)
+            {
+                lex_e_status nxt_status = _lex_advance(lexer);
+
+                if (!(nxt_status == LS_OK || nxt_status == LS_NOT_OK))
+                {
+                    return nxt_status;
+                }
+            }
+
             return LS_OK;
+    }
+
+    if (!lexer->state.possible_length)
+    {
+        // TODO err
+        return LS_GEN_ERROR;
     }
 
     sbuilder_write_char(&lexer->state.builder, c);
@@ -320,11 +355,20 @@ _lex_e_valid _lex_validate(lex_lexer* lexer, lex_token_t type, char c)
         case LT_ESCAPE_TEXT_NOAT: return _is_anychar_noat(c) ? LV_DONE_WHEN_NOT : LV_NOT;
         case LT_AT:
         {
-            if (!_is_at(c) || builder->len) return LV_NOT;
+            // if lookahead is alnum then this must be treated as a pointer
+            if (!_is_at(c) || builder->len || _is_alnum(lexer->lookahead)) return LV_NOT;
 
-            return _is_at(lexer->lookahead) ? LV_CONT : LV_DONE;
+            return _is_at(lexer->lookahead) ? LV_NOT : LV_DONE;
         }
-        case LT_DOUBLE_AT: return _is_at(c) ? LV_DONE : LV_NOT;
+        case LT_DOUBLE_AT:
+        {
+            if (!_is_at(c)) return LV_NOT;
+
+            if (lexer->state.builder.len)
+                return LV_DONE;
+
+            return LV_CONT;
+        }
         case LT_HASH_TAG: return _is_hash_tag(c) ? LV_DONE : LV_NOT;
         case LT_DELIM: return _is_space(c) ? LV_DONE : LV_NOT;
         default:

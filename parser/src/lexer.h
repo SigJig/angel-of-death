@@ -44,13 +44,10 @@ typedef enum
     LV_DONE_WHEN_NOT // done when the validator returns not
 } _lex_e_valid;
 
-// 40b
 typedef struct lex_token
 {
-    // 4b
     lex_token_t type;
-    
-    // 8b * 4 = 32b
+
     size_t line;
     size_t col;
 
@@ -58,30 +55,28 @@ typedef struct lex_token
     struct lex_token* next;
 } lex_token;
 
-// need to align, sizes are not correct
 typedef struct
 {
-    // 48b (?)
     struct
     {
-        // 24b
         sbuilder builder;
 
-        // 4b * 2 = 8b
         lex_token_t possible_types[(int)LT_INVALID]; // contains each type
         _lex_e_valid status[(int)LT_INVALID]; // contains status for each type
+
+        int possible_length;
     } state;
 
-    // 1b * 3 = 3b
     bool eof_reached;
     char current;
     char lookahead;
 
-    // 8b * 4 = 32b
     size_t line;
     size_t col;
     lex_token* token_first;
     lex_token* token_last;
+    
+    sbuilder buf;
 } lex_lexer;
 
 

@@ -109,7 +109,7 @@ char* sbuilder_return(sbuilder* builder)
     if (!builder->mem)
         return NULL;
 
-    char* ret = (char*)calloc(builder->len + 1, sizeof ret);
+    char* ret = (char*)calloc(builder->len + 1, sizeof *ret);
     strncpy(ret, builder->mem, builder->len);
 
     sbuilder_clear(builder);

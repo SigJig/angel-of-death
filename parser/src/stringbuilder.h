@@ -8,10 +8,8 @@
 #define SBUILDER_DEFAULT_CAP 100
 #define SBUILDER_DEFAULT_CAP_MULT 2
 
-// 24b
 typedef struct
 {
-    // 8b * 3
     char* mem;
     size_t len;
     size_t cap;
