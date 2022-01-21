@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define SBUILDER_DEFAULT_CAP 100
 #define SBUILDER_DEFAULT_CAP_MULT 2
@@ -23,6 +24,10 @@ int sbuilder_write(sbuilder* builder, const char* addition);
 int sbuilder_write_char(sbuilder* builder, char c);
 
 char sbuilder_back(sbuilder* builder);
+
+// Count how many consecutive charcters c return true for f(c). If param back is false, it counts from front, otherwise from back.
+int sbuilder_num_consec(sbuilder* builder, bool (*func)(char), bool back);
+
 const char* sbuilder_to_string(const sbuilder* builder);
 
 // Clears the sbuilder to be reused, and then returns a heap allocated char* (must be freed)

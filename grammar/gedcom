@@ -28,7 +28,7 @@ delim: " " // 0x20 (space)
 escape: "@" "#" escape_text "@" non_at // 0x40 0x23 escape_text 0x40 non_at
 escape_text: any_char+
 
-line_item: any_char+ | escape+
+line_item: any_char | escape | line_item
 line_value: pointer | line_item
 
 non_at: alpha | digit | otherchar | " " | "#" // " " = 0x20, "#" = 0x23

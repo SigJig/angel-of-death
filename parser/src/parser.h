@@ -7,14 +7,14 @@
 #include "lexer.h"
 #include "errcodes.h"
 
+#define HAS_XREF    (1 << 0)
+#define HAS_LINEVAL (1 << 1)
+
+
+
 typedef struct parser_line
 {
-    enum
-    {
-        NONE = 0,
-        XREF =      1 << 0,
-        LINEVAL =   1 << 1
-    } optional; // Determines whether the line contains optional xref and option line value
+    int optional;
     int line;
     char* xref;
     char* tag;
@@ -28,7 +28,7 @@ typedef struct
     parser_line* lines;
 } parser_result;
 
+e_status parser_parse_token(lex_token* token);
 parser_result parser_parse(lex_token* tokens);
-
 
 #endif // PARSER_H

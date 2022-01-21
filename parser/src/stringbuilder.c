@@ -99,6 +99,20 @@ char sbuilder_back(sbuilder* builder)
     return builder->mem[builder->len - 1];
 }
 
+int sbuilder_num_consec(sbuilder* builder, bool (*func)(char), bool back)
+{
+    if (!builder->len) return 0;
+    
+    int n = 0;
+
+    if (back)
+        for (int i = builder->len - 1; i >= 0 && func(builder->mem[i]); i--) n++;
+    else
+        for (int i = 0; i < builder->len && func(builder->mem[i]); i++) n++;
+    
+    return n;
+}
+
 const char* sbuilder_to_string(const sbuilder* builder)
 {
     return (const char*)builder->mem;

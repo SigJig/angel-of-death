@@ -15,10 +15,9 @@ typedef enum
     LT_POINTER,
     LT_TERMINATOR,
     LT_S_ALNUM, // sequence alnum
-    LT_ESCAPE_TEXT_NOAT,
-    LT_AT,
-    LT_DOUBLE_AT,
-    LT_HASH_TAG,
+    LT_S_ANYCHAR,
+    LT_ESCAPE,
+    LT_LINE_ITEM,
     LT_DELIM,
     LT_INVALID // should always be last
 } lex_token_t;

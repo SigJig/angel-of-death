@@ -127,6 +127,41 @@ static lex_e_valid lex_validate(lex_lexer* lexer, lex_token_t type, char c)
                 }
             }
         }
+        case LT_ESCAPE:
+        {
+            // escape: @ # anychar+ @ non_at
+            switch (builder->len)
+            {
+                case 0: return (lex_e_valid)_is_at(c);
+                case 1: return (lex_e_valid)_is_hash_tag(c);
+                case 2: return (lex_e_valid)_is_anychar_noat(c);
+                default:
+                {
+                    int consec = sbuilder_num_consec(builder, _is_at, true);
+
+                    if (_is_at(c))
+                    {
+                        if (_is_at(lexer->lookahead))
+                        {
+                            return LV_CONT;
+                        }
+
+                        // we are unable to terminate, as we atleast need one anychar
+                        if (builder->len < 2) return LV_NOT;
+
+                        return ((consec & 1) == 0) ? LV_DONE : LV_NOT;
+                    }
+
+                    // when reaching this point, an odd amount of @'s means that this is the final non_a
+                    if (consec & 1)
+                    {
+                        return _is_anychar_noat(c) ? LV_DONE : LV_NOT;
+                    }
+
+                    return _is_anychar_noat(c) ? LV_CONT : LV_NOT; 
+                }
+            }
+        }
         case LT_TERMINATOR:
         {
             char back = sbuilder_back(builder);
@@ -150,24 +185,22 @@ static lex_e_valid lex_validate(lex_lexer* lexer, lex_token_t type, char c)
         }
         case LT_S_ALNUM:
             return _is_alnum(c) ? LV_DONE_WHEN_NOT : LV_NOT;
-        case LT_ESCAPE_TEXT_NOAT: return _is_anychar_noat(c) ? LV_DONE_WHEN_NOT : LV_NOT;
-        case LT_AT:
+        case LT_S_ANYCHAR:
         {
-            // if lookahead is alnum then this must be treated as a pointer
-            if (!_is_at(c) || builder->len || _is_alnum(lexer->lookahead)) return LV_NOT;
+            int consec_at = sbuilder_num_consec(builder, _is_at, true);
 
-            return _is_at(lexer->lookahead) ? LV_NOT : LV_DONE;
+            if (_is_at(c))
+            {
+                if (!_is_at(lexer->lookahead) && (consec_at & 1))
+
+                return LV_CONT;
+            }
+            else if (consec_at & 1)
+                return LV_NOT;
+
+            return _is_anychar_noat(c) ? LV_DONE_WHEN_NOT : LV_NOT;
         }
-        case LT_DOUBLE_AT:
-        {
-            if (!_is_at(c)) return LV_NOT;
 
-            if (lexer->state.builder.len)
-                return LV_DONE;
-
-            return LV_CONT;
-        }
-        case LT_HASH_TAG: return _is_hash_tag(c) ? LV_DONE : LV_NOT;
         case LT_DELIM: return _is_space(c) ? LV_DONE : LV_NOT;
         default:
             // TODO: should warn
@@ -259,6 +292,7 @@ static e_status lex_advance(lex_lexer* lexer)
     if (!lexer->state.possible_length)
     {
         // TODO err
+        printf("%c: lexer error\n", c);
         return ST_GEN_ERROR;
     }
 
@@ -344,10 +378,11 @@ void lex_destroy(lex_lexer* lexer)
 e_status lex_feed(lex_lexer* lexer, char c)
 {
     lexer->current = lexer->lookahead;
+    bool eof = false;
     
-    if (c == EOF)
+    if (c == EOF || c == '\0')
     {
-        lexer->eof_reached = true;
+        eof = true;
         lexer->lookahead = '\0';
     }
     else
@@ -355,5 +390,8 @@ e_status lex_feed(lex_lexer* lexer, char c)
         lexer->lookahead = c;
     }
 
-    return lex_advance(lexer);
+    e_status result = lex_advance(lexer);
+    lexer->eof_reached = eof;
+
+    return result;
 }
