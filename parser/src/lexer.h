@@ -23,20 +23,6 @@ typedef enum
     LT_INVALID // should always be last
 } lex_token_t;
 
-// convert to
-extern const lex_token_t _lex_tok_cvtable[];
-
-lex_token_t lex_token_t_from_int(int i);
-
-// used by the validator
-typedef enum
-{
-    LV_NOT = 0, // invalid (cast from false)
-    LV_CONT, // valid and can continue until v_done (cast from true)
-    LV_DONE, // valid and done
-    LV_DONE_WHEN_NOT // done when the validator returns not
-} _lex_e_valid;
-
 typedef struct lex_token
 {
     lex_token_t type;
@@ -48,6 +34,15 @@ typedef struct lex_token
     struct lex_token* next;
 } lex_token;
 
+// used by the validator
+typedef enum
+{
+    LV_NOT = 0, // invalid (cast from false)
+    LV_CONT, // valid and can continue until v_done (cast from true)
+    LV_DONE, // valid and done
+    LV_DONE_WHEN_NOT // done when the validator returns not
+} lex_e_valid;
+
 typedef struct
 {
     struct
@@ -55,7 +50,7 @@ typedef struct
         sbuilder builder;
 
         lex_token_t possible_types[(int)LT_INVALID]; // contains each type
-        _lex_e_valid status[(int)LT_INVALID]; // contains status for each type
+        lex_e_valid status[(int)LT_INVALID]; // contains status for each type
 
         int possible_length;
     } state;
@@ -84,21 +79,5 @@ e_status lex_init(lex_lexer* lexer);
 void lex_destroy(lex_lexer* lexer);
 
 e_status lex_feed(lex_lexer* lexer, char c);
-
-
-// Internal functions
-
-// should not clear sbuilder, as that should be cleared either by using sbuilder_return or sbuilder_clear manually
-void _lex_reset_state(lex_lexer* lexer);
-
-lex_token* _lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme);
-
-// Beware this does not set to null where another token might have ->next as this token
-void _lex_del_token(lex_lexer* lexer, lex_token* token);
-
-e_status _lex_advance(lex_lexer* lexer);
-
-// returns 0 if invalid, 1 if valid and can continue, and 2 if valid and can not continue
-_lex_e_valid _lex_validate(lex_lexer* lexer, lex_token_t type, char c);
 
 #endif // LEXER_H

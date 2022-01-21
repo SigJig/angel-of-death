@@ -18,26 +18,6 @@ typedef struct
     } state;
 } parser_t;
 
-parser_result parser_parse(lex_token* tokens)
-{
-    parser_result result = {.lines = NULL};
-
-    if (!tokens) return result;
-
-    parser_t parser;
-
-    if (!parser_init(&parser))
-    {
-        parser_destroy(&parser);
-
-        return result;
-    }
-
-    parser_destroy(&parser);
-}
-
-
-// Internal functions
 
 static e_status parser_init(parser_t* parser)
 {
@@ -55,4 +35,22 @@ static void parser_destroy(parser_t* parser)
     if (!parser) return;
 
     parser->tokens = NULL;
+}
+
+parser_result parser_parse(lex_token* tokens)
+{
+    parser_result result = {.lines = NULL};
+
+    if (!tokens) return result;
+
+    parser_t parser;
+
+    if (!parser_init(&parser))
+    {
+        parser_destroy(&parser);
+
+        return result;
+    }
+
+    parser_destroy(&parser);
 }
