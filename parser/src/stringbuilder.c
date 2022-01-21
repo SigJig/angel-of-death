@@ -1,6 +1,28 @@
 
 #include "stringbuilder.h"
 
+static int sbuilder_verify_cap(sbuilder* builder)
+{
+    if (!builder->cap) return 2;
+
+    if (builder->len >= builder->cap)
+    {
+        builder->cap *= SBUILDER_DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
+        
+        if (builder->mem)
+        {
+            builder->mem = (char*)realloc(builder->mem, (sizeof *builder->mem) * (builder->cap + 1));
+            
+            if (!builder->mem)
+                return 1;
+
+            memset(builder->mem + builder->len, 0, builder->cap + 1 - builder->len);
+        }
+    }
+
+    return 0;
+}
+
 int sbuilder_init(sbuilder* builder, size_t cap)
 {
     builder->cap = cap;
@@ -37,28 +59,6 @@ void sbuilder_clear(sbuilder *builder)
     memset(builder->mem, 0, builder->cap + 1);
 }
 
-int _sbuilder_verify_cap(sbuilder* builder)
-{
-    if (!builder->cap) return 2;
-
-    if (builder->len >= builder->cap)
-    {
-        builder->cap *= SBUILDER_DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
-        
-        if (builder->mem)
-        {
-            builder->mem = (char*)realloc(builder->mem, (sizeof *builder->mem) * (builder->cap + 1));
-            
-            if (!builder->mem)
-                return 1;
-
-            memset(builder->mem + builder->len, 0, builder->cap + 1 - builder->len);
-        }
-    }
-
-    return 0;
-}
-
 int sbuilder_write(sbuilder* builder, const char* addition)
 {
     if (!builder->cap)
@@ -68,7 +68,7 @@ int sbuilder_write(sbuilder* builder, const char* addition)
     int initial_length = builder->len;
     builder->len += length;
 
-    int verified = _sbuilder_verify_cap(builder);
+    int verified = sbuilder_verify_cap(builder);
     if (verified != 0) return verified;
 
     strncpy(builder->mem + initial_length, addition, length);
@@ -84,7 +84,7 @@ int sbuilder_write_char(sbuilder* builder, char c)
     int initial_length = builder->len;
     builder->len += 1;
 
-    int verified = _sbuilder_verify_cap(builder);
+    int verified = sbuilder_verify_cap(builder);
     if (verified != 0) return verified;
 
     builder->mem[initial_length] = c;
