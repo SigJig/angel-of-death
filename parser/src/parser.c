@@ -1,6 +1,22 @@
 
 #include "parser.h"
 
+#define LEVEL_MAX 99
+#define LEVEL_INVALID -1
+
+typedef struct
+{
+    int stack[LEVEL_MAX + 1];
+    size_t stack_idx;
+    
+    lex_token* tokens;
+
+    struct
+    {
+        int index;
+        parser_line* cur_line;
+    } state;
+} parser_t;
 
 parser_result parser_parse(lex_token* tokens)
 {
@@ -8,22 +24,22 @@ parser_result parser_parse(lex_token* tokens)
 
     if (!tokens) return result;
 
-    _parser_t parser;
+    parser_t parser;
 
-    if (!_parser_init(&parser))
+    if (!parser_init(&parser))
     {
-        _parser_destroy(&parser);
+        parser_destroy(&parser);
 
         return result;
     }
 
-    _parser_destroy(&parser);
+    parser_destroy(&parser);
 }
 
 
 // Internal functions
 
-e_status _parser_init(_parser_t* parser)
+static e_status parser_init(parser_t* parser)
 {
     if (!parser) return ST_INIT_FAIL;
 
@@ -34,7 +50,7 @@ e_status _parser_init(_parser_t* parser)
     parser->state.index = 0;
 }
 
-void _parser_destroy(_parser_t* parser)
+static void parser_destroy(parser_t* parser)
 {
     if (!parser) return;
 
