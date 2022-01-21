@@ -18,7 +18,6 @@ parser_result parser_parse(lex_token* tokens)
     }
 
     _parser_destroy(&parser);
-    free(tokens);
 }
 
 
@@ -30,6 +29,9 @@ e_status _parser_init(_parser_t* parser)
 
     parser->tokens = NULL;
     parser->stack_idx = 0;
+
+    parser->state.cur_line = NULL;
+    parser->state.index = 0;
 }
 
 void _parser_destroy(_parser_t* parser)
