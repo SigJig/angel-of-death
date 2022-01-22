@@ -43,7 +43,7 @@ char* emessage_to_string(struct err_message* msg)
 {
     sbuilder builder;
     
-    if (!sbuilder_init(&builder, 100)) return NULL;
+    if (sbuilder_init(&builder, 100) != ST_OK) return NULL;
 
     sbuilder_write(&builder, msg->type);
     sbuilder_write(&builder, " from ");
@@ -53,6 +53,7 @@ char* emessage_to_string(struct err_message* msg)
     char line_info[50];
     sprintf(line_info, " (line: %zu, column: %zu): ", msg->line, msg->col);
 
+    sbuilder_write(&builder, line_info);
     sbuilder_write(&builder, msg->message);
 
     return sbuilder_complete(&builder);

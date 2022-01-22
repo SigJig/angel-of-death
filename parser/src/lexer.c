@@ -55,9 +55,16 @@ static bool _is_line_feed(char c)
     return c == '\n';
 }
 
-static struct err_message* lex_err(lex_lexer* lexer, const char* message, char c)
+static struct err_message* lex_err_unexpected(lex_lexer* lexer, char c)
 {
-    return ehandler_err(&lexer->ehandler, "lexer", message, lexer->line, lexer->col);
+    // TODO: move to ehandler_errf function
+    const char* fmt = "unexpected character:";
+    char msg[23];
+    sprintf(msg, "%s%c", fmt, c);
+
+    struct err_message* ret = ehandler_err(&lexer->ehandler, "lexer", msg, lexer->line, lexer->col);
+
+    return ret;
 }
 
 static lex_token* lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
@@ -299,7 +306,7 @@ static e_status lex_advance(lex_lexer* lexer)
 
     if (!lexer->state.possible_length)
     {
-        lex_err(lexer, "unexpected charcter: ", c);
+        lex_err_unexpected(lexer, c);
         return ST_GEN_ERROR;
     }
 
@@ -405,6 +412,19 @@ e_status lex_feed(lex_lexer* lexer, char c)
 
     e_status result = lex_advance(lexer);
     lexer->eof_reached = eof;
+
+    if (result != ST_NOT_INIT)
+    {
+        if (lexer->current == '\n')
+        {
+            lexer->line++;
+            lexer->col = 1;
+        }
+        else
+        {
+            lexer->col++;
+        }
+    }
 
     return result;
 }
