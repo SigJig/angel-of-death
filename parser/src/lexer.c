@@ -1,5 +1,6 @@
 
 #include <assert.h>
+#include <stdarg.h>
 #include "lexer.h"
 
 // Begin tokenizing functions
@@ -55,16 +56,20 @@ static bool _is_line_feed(char c)
     return c == '\n';
 }
 
+static struct err_message* lex_errf(lex_lexer* lexer, const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    struct err_message* result = ehandler_verrf(&lexer->ehandler, "lexer", format, args);
+    va_end(args);
+
+    return result;
+}
+
 static struct err_message* lex_err_unexpected(lex_lexer* lexer, char c)
 {
-    // TODO: move to ehandler_errf function
-    const char* fmt = "unexpected character:";
-    char msg[23];
-    sprintf(msg, "%s%c", fmt, c);
-
-    struct err_message* ret = ehandler_err(&lexer->ehandler, "lexer", msg, lexer->line, lexer->col);
-
-    return ret;
+    return lex_errf(lexer, "unexpected character (line: %u, col: %u): %c", lexer->line, lexer->col, c);
 }
 
 static lex_token* lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
@@ -158,9 +163,6 @@ static lex_e_valid lex_validate(lex_lexer* lexer, lex_token_t type, char c)
                         {
                             return LV_CONT;
                         }
-
-                        // we are unable to terminate, as we atleast need one anychar
-                        if (builder->len < 2) return LV_NOT;
 
                         return ((consec & 1) == 0) ? LV_DONE : LV_NOT;
                     }

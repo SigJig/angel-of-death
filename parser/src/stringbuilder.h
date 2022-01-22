@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #define SBUILDER_DEFAULT_CAP 100
 #define SBUILDER_DEFAULT_CAP_MULT 2
@@ -21,6 +22,8 @@ void sbuilder_destroy(sbuilder* builder);
 void sbuilder_clear(sbuilder* builder);
 
 int sbuilder_write(sbuilder* builder, const char* addition);
+int sbuilder_vwritef(sbuilder* builder, const char* fmt, va_list args);
+int sbuilder_writef(sbuilder* builder, const char* fmt, ...);
 int sbuilder_write_char(sbuilder* builder, char c);
 
 char sbuilder_back(sbuilder* builder);

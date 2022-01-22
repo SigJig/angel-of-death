@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include "stringbuilder.h"
 
 static int sbuilder_verify_cap(sbuilder* builder)
@@ -74,6 +75,45 @@ int sbuilder_write(sbuilder* builder, const char* addition)
     strncpy(builder->mem + initial_length, addition, length);
 
     return 0;
+}
+
+int sbuilder_vwritef(sbuilder* builder, const char* fmt, va_list args)
+{
+    if (!builder->cap) return 2;
+
+    va_list copy;
+    va_copy(copy, args);
+
+    int required = vsnprintf(NULL, 0, fmt, args) + 1;
+
+    if (required <= 0) return 2;
+
+    char* mem = (char*)calloc(required, sizeof *mem);
+
+    if (!mem)
+        return 1;
+
+    vsprintf(mem, fmt, copy);
+
+    va_end(copy);
+
+    int result = sbuilder_write(builder, mem);
+
+    free(mem);
+
+    return result;
+}
+
+int sbuilder_writef(sbuilder* builder, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    int result = sbuilder_vwritef(builder, fmt, args);
+
+    va_end(args);
+
+    return result;
 }
 
 int sbuilder_write_char(sbuilder* builder, char c)

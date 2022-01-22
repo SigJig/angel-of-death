@@ -21,15 +21,18 @@ static struct err_message* ehandler_reserve(struct err_handler* handler)
     return &handler->messages[handler->len - 1];
 }
 
-static struct err_message* ehandler_add(struct err_handler* handler, const char* err_type, const char* origin, const char* message, size_t line, size_t col)
+static struct err_message* ehandler_add(struct err_handler* handler, const char* err_type, const char* origin, const char* format, va_list args)
 {
     struct err_message* msg = ehandler_reserve(handler);
+    sbuilder builder;
+
+    if (sbuilder_init(&builder, 100) != ST_OK) return NULL;
+
+    sbuilder_vwritef(&builder, format, args);
 
     msg->type = err_type;
     msg->origin = origin;
-    msg->message = strdup(message);
-    msg->line = line;
-    msg->col = col;
+    msg->message = sbuilder_complete(&builder);
 
     return msg;
 }
@@ -45,16 +48,7 @@ char* emessage_to_string(struct err_message* msg)
     
     if (sbuilder_init(&builder, 100) != ST_OK) return NULL;
 
-    sbuilder_write(&builder, msg->type);
-    sbuilder_write(&builder, " from ");
-    sbuilder_write(&builder, msg->origin);
-
-    // TODO: This needs a better solution to handle larger numbers, prob best to make a printf function for the stringbuilder
-    char line_info[50];
-    sprintf(line_info, " (line: %zu, column: %zu): ", msg->line, msg->col);
-
-    sbuilder_write(&builder, line_info);
-    sbuilder_write(&builder, msg->message);
+    sbuilder_writef(&builder, "%s from %s: %s", msg->type, msg->origin, msg->message);
 
     return sbuilder_complete(&builder);
 }
@@ -82,7 +76,19 @@ void ehandler_destroy(struct err_handler* handler)
     free(handler->messages);
 }
 
-struct err_message* ehandler_err(struct err_handler* handler, const char* origin, const char* message, size_t line, size_t column)
+struct err_message* ehandler_verrf(struct err_handler* handler, const char* origin, const char* format, va_list args)
 {
-    return ehandler_add(handler, "error", origin, message, line, column);
+    return ehandler_add(handler, "error", origin, format, args);
+}
+
+struct err_message* ehandler_errf(struct err_handler* handler, const char* origin, const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    struct err_message* result = ehandler_verrf(handler, origin, format, args);
+    
+    va_end(args);
+
+    return result;
 }
