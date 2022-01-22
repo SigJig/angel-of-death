@@ -61,7 +61,7 @@ static struct err_message* lex_errf(struct lex_lexer* lexer, const char* format,
     va_list args;
     va_start(args, format);
 
-    struct err_message* result = ehandler_verrf(&lexer->ehandler, "lexer", format, args);
+    struct err_message* result = ehandler_verrf(lexer->ehandler, "lexer", format, args);
     va_end(args);
 
     return result;
@@ -69,7 +69,7 @@ static struct err_message* lex_errf(struct lex_lexer* lexer, const char* format,
 
 static struct err_message* lex_err_unexpected(struct lex_lexer* lexer, char c)
 {
-    return lex_errf(lexer, "unexpected character (line: %u, col: %u): %c", lexer->line, lexer->col, c);
+    return lex_errf(lexer, "unexpected character (line: %zu, col: %zu): %c", lexer->line, lexer->col, c);
 }
 
 static struct lex_token* lex_add_token(struct lex_lexer* lexer, lex_token_type type, char* lexeme)
@@ -94,20 +94,6 @@ static struct lex_token* lex_add_token(struct lex_lexer* lexer, lex_token_type t
     newtok->next = NULL;
 
     return newtok;
-}
-
-static void lex_del_token(struct lex_lexer* lexer, struct lex_token* token)
-{
-    if (!token) return;
-
-    // lexeme has been made by stringbuilder and must be free after use
-    if (token->lexeme)
-    {
-        free(token->lexeme);
-        token->lexeme = NULL;
-    }
-
-    free(token);
 }
 
 static void lex_reset_state(struct lex_lexer* lexer)
@@ -323,14 +309,39 @@ END INTERNAL
 =================================================
 */
 
-struct lex_lexer* lex_create()
+struct lex_token* lex_token_copy(struct lex_token* token)
+{
+    struct lex_token* copy = (struct lex_token*)malloc(sizeof *copy);
+    copy->type = token->type;
+    copy->lexeme = strdup(token->lexeme);
+    copy->line = token->line;
+    copy->col = token->col;
+
+    copy->next = NULL;
+
+    return copy;
+}
+
+void lex_token_free(struct lex_token* token)
+{
+    if (!token) return;
+
+    // lexeme has been made by stringbuilder and must be free after use
+    if (token->lexeme)
+    {
+        free(token->lexeme);
+        token->lexeme = NULL;
+    }
+
+    free(token);
+}
+
+struct lex_lexer* lex_create(struct err_handler* ehandler)
 {
     struct lex_lexer* lexer = (struct lex_lexer*)malloc(sizeof *lexer);
 
-    if (lex_init(lexer) != ST_OK)
+    if (lex_init(lexer, ehandler) != ST_OK)
     {
-        sbuilder_destroy(&lexer->state.builder);
-        sbuilder_destroy(&lexer->buf);
         free(lexer);
 
         return NULL;
@@ -339,7 +350,7 @@ struct lex_lexer* lex_create()
     return lexer;
 }
 
-e_statuscode lex_init(struct lex_lexer* lexer)
+e_statuscode lex_init(struct lex_lexer* lexer, struct err_handler* ehandler)
 {
     if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0)
     {
@@ -351,11 +362,12 @@ e_statuscode lex_init(struct lex_lexer* lexer)
         return ST_INIT_FAIL;
     }
 
-    if (ehandler_init(&lexer->ehandler) != ST_OK)
+    if (!ehandler)
     {
         return ST_INIT_FAIL;
     }
 
+    lexer->ehandler = ehandler;
     lexer->eof_reached = false;
     lexer->current = '\0';
     lexer->lookahead = '\0';
@@ -386,15 +398,15 @@ void lex_destroy(struct lex_lexer* lexer)
     {
         tmp = tok;
         tok = tok->next;
-        lex_del_token(lexer, tmp);
+        lex_token_free(tmp);
     }
 
     lexer->token_first = NULL;
     lexer->token_last = NULL;
+    lexer->ehandler = NULL;
 
     sbuilder_destroy(&lexer->state.builder);
     sbuilder_destroy(&lexer->buf);
-    ehandler_destroy(&lexer->ehandler);
 }
 
 e_statuscode lex_feed(struct lex_lexer* lexer, char c)

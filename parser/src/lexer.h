@@ -63,19 +63,23 @@ struct lex_lexer
     struct lex_token* token_first;
     struct lex_token* token_last;
 
-    struct err_handler ehandler;
+    struct err_handler* ehandler;
     struct sbuilder buf;
 };
 
 
 // API functions
 
+// copies token. sets next to null, meaning the new token will be isolated
+struct lex_token* lex_token_copy(struct lex_token* token);
+void lex_token_free(struct lex_token* token);
+
 // used when lexer is heap allocated
-struct lex_lexer* lex_create();
+struct lex_lexer* lex_create(struct err_handler* ehandler);
 void lex_free(struct lex_lexer* lexer);
 
 // used when lexer is not heap allocated
-e_statuscode lex_init(struct lex_lexer* lexer);
+e_statuscode lex_init(struct lex_lexer* lexer, struct err_handler* ehandler);
 void lex_destroy(struct lex_lexer* lexer);
 
 e_statuscode lex_feed(struct lex_lexer* lexer, char c);
