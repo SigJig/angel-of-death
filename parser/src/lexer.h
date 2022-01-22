@@ -20,21 +20,10 @@ typedef enum
     LT_ESCAPE,
     LT_DELIM,
     LT_INVALID // should always be last
-} lex_token_t;
-
-typedef struct lex_token
-{
-    lex_token_t type;
-
-    size_t line;
-    size_t col;
-
-    char* lexeme;
-    struct lex_token* next;
-} lex_token;
+} lex_token_type;
 
 // used by the validator
-typedef enum
+typedef enum lex_e_valid
 {
     LV_NOT = 0, // invalid (cast from false)
     LV_CONT, // valid and can continue until v_done (cast from true)
@@ -42,13 +31,24 @@ typedef enum
     LV_DONE_WHEN_NOT // done when the validator returns not
 } lex_e_valid;
 
-typedef struct
+struct lex_token
+{
+    lex_token_type type;
+
+    size_t line;
+    size_t col;
+
+    char* lexeme;
+    struct lex_token* next;
+};
+
+struct lex_lexer
 {
     struct
     {
-        sbuilder builder;
+        struct sbuilder builder;
 
-        lex_token_t possible_types[(int)LT_INVALID]; // contains each type
+        lex_token_type possible_types[(int)LT_INVALID]; // contains each type
         lex_e_valid status[(int)LT_INVALID]; // contains status for each type
 
         int possible_length;
@@ -60,24 +60,24 @@ typedef struct
 
     size_t line;
     size_t col;
-    lex_token* token_first;
-    lex_token* token_last;
+    struct lex_token* token_first;
+    struct lex_token* token_last;
 
     struct err_handler ehandler;
-    sbuilder buf;
-} lex_lexer;
+    struct sbuilder buf;
+};
 
 
 // API functions
 
 // used when lexer is heap allocated
-lex_lexer* lex_create();
-void lex_free(lex_lexer* lexer);
+struct lex_lexer* lex_create();
+void lex_free(struct lex_lexer* lexer);
 
 // used when lexer is not heap allocated
-e_status lex_init(lex_lexer* lexer);
-void lex_destroy(lex_lexer* lexer);
+e_statuscode lex_init(struct lex_lexer* lexer);
+void lex_destroy(struct lex_lexer* lexer);
 
-e_status lex_feed(lex_lexer* lexer, char c);
+e_statuscode lex_feed(struct lex_lexer* lexer, char c);
 
 #endif // LEXER_H

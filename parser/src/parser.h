@@ -12,7 +12,7 @@
 
 
 
-typedef struct parser_line
+struct parser_line
 {
     int optional;
     int line;
@@ -21,14 +21,14 @@ typedef struct parser_line
     char* line_value;
 
     struct parser_line* next;
-} parser_line;
+};
 
-typedef struct
+struct parser_result
 {
-    parser_line* lines;
-} parser_result;
+    struct parser_line* lines;
+};
 
-//e_status parser_parse_token(lex_token* token);
-parser_result parser_parse(lex_token* tokens);
+//e_statuscode parser_parse_token(struct lex_token* token);
+struct parser_result parser_parse(struct lex_token* tokens);
 
 #endif // PARSER_H

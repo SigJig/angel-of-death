@@ -21,7 +21,7 @@ struct err_handler
     size_t cap;
 };
 
-e_status ehandler_init(struct err_handler* handler);
+e_statuscode ehandler_init(struct err_handler* handler);
 void ehandler_destroy(struct err_handler* handler);
 
 void emessage_destroy(struct err_message* msg);

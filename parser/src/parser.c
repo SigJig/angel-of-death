@@ -4,7 +4,7 @@
 #define LEVEL_MAX 99
 #define LEVEL_INVALID -1
 
-typedef struct
+struct parser
 {
     int stack[LEVEL_MAX + 1];
     size_t stack_idx;
@@ -12,16 +12,16 @@ typedef struct
     struct
     {
         int index;
-        parser_line* cur_line;
+        struct parser_line* cur_line;
     } state;
-} parser_t;
+};
 
-static bool is_tag(lex_token_t type)
+static bool is_tag(lex_token_type type)
 {
     return type == LT_S_ALNUM || type == LT_NUMBER;
 }
 
-static e_status parser_init(parser_t* parser)
+static e_statuscode parser_init(struct parser* parser)
 {
     if (!parser) return ST_INIT_FAIL;
 
@@ -31,12 +31,12 @@ static e_status parser_init(parser_t* parser)
     parser->state.index = 0;
 }
 
-static void parser_destroy(parser_t* parser)
+static void parser_destroy(struct parser* parser)
 {
     if (!parser) return;
 }
 
-static bool parser_valid_at_idx(parser_t* parser, lex_token* token)
+static bool parser_valid_at_idx(struct parser* parser, struct lex_token* token)
 {
     int index = parser->state.index;
 
@@ -56,7 +56,7 @@ END INTERNAL
 =================================================
 */
 
-e_status parser_parse_token(parser_t* parser, lex_token* token)
+e_statuscode parser_parse_token(struct parser* parser, struct lex_token* token)
 {
     int index = parser->state.index;
 
@@ -72,13 +72,13 @@ e_status parser_parse_token(parser_t* parser, lex_token* token)
     return parser_valid_at_idx(parser, token) ? ST_NOT_OK : ST_GEN_ERROR;
 }
 
-parser_result parser_parse(lex_token* tokens)
+struct parser_result parser_parse(struct lex_token* tokens)
 {
-    parser_result result = {.lines = NULL};
+    struct parser_result result = {.lines = NULL};
 
     if (!tokens) return result;
 
-    parser_t parser;
+    struct parser parser;
 
     if (!parser_init(&parser))
     {

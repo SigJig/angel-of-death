@@ -56,7 +56,7 @@ static bool _is_line_feed(char c)
     return c == '\n';
 }
 
-static struct err_message* lex_errf(lex_lexer* lexer, const char* format, ...)
+static struct err_message* lex_errf(struct lex_lexer* lexer, const char* format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -67,14 +67,14 @@ static struct err_message* lex_errf(lex_lexer* lexer, const char* format, ...)
     return result;
 }
 
-static struct err_message* lex_err_unexpected(lex_lexer* lexer, char c)
+static struct err_message* lex_err_unexpected(struct lex_lexer* lexer, char c)
 {
     return lex_errf(lexer, "unexpected character (line: %u, col: %u): %c", lexer->line, lexer->col, c);
 }
 
-static lex_token* lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
+static struct lex_token* lex_add_token(struct lex_lexer* lexer, lex_token_type type, char* lexeme)
 {
-    lex_token* newtok = (lex_token*)malloc(sizeof *newtok);
+    struct lex_token* newtok = (struct lex_token*)malloc(sizeof *newtok);
 
     if (!newtok)
         return NULL;
@@ -96,7 +96,7 @@ static lex_token* lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme
     return newtok;
 }
 
-static void lex_del_token(lex_lexer* lexer, lex_token* token)
+static void lex_del_token(struct lex_lexer* lexer, struct lex_token* token)
 {
     if (!token) return;
 
@@ -110,20 +110,20 @@ static void lex_del_token(lex_lexer* lexer, lex_token* token)
     free(token);
 }
 
-static void lex_reset_state(lex_lexer* lexer)
+static void lex_reset_state(struct lex_lexer* lexer)
 {
     for (int i = 0; i < (int)LT_INVALID; i++)
     {
-        lexer->state.possible_types[i] = (lex_token_t)i;
+        lexer->state.possible_types[i] = (lex_token_type)i;
         lexer->state.status[i] = LV_NOT;
     }
 
     lexer->state.possible_length = (int)LT_INVALID;
 }
 
-static lex_e_valid lex_validate(lex_lexer* lexer, lex_token_t type, char c)
+static lex_e_valid lex_validate(struct lex_lexer* lexer, lex_token_type type, char c)
 {
-    sbuilder* builder = &lexer->state.builder;
+    struct sbuilder* builder = &lexer->state.builder;
 
     switch (type)
     {
@@ -226,7 +226,7 @@ static lex_e_valid lex_validate(lex_lexer* lexer, lex_token_t type, char c)
 }
 
 // does not currently process current character if done by not
-static e_status lex_advance(lex_lexer* lexer)
+static e_statuscode lex_advance(struct lex_lexer* lexer)
 {
     // if eof has not been reached and lookahead is empty, we need to wait for more characters
     // before continuing
@@ -239,7 +239,7 @@ static e_status lex_advance(lex_lexer* lexer)
 
     for (int i = 0; i < (int)LT_INVALID; i++)
     {
-        lex_token_t type = (lex_token_t)i;
+        lex_token_type type = (lex_token_type)i;
         if (lexer->state.possible_types[i] == LT_INVALID) continue;
 
         lex_e_valid status = lex_validate(lexer, type, c);
@@ -295,7 +295,7 @@ static e_status lex_advance(lex_lexer* lexer)
 
             if (!write)
             {
-                e_status nxt_status = lex_advance(lexer);
+                e_statuscode nxt_status = lex_advance(lexer);
 
                 if (!(nxt_status == ST_OK || nxt_status == ST_NOT_OK))
                 {
@@ -323,9 +323,9 @@ END INTERNAL
 =================================================
 */
 
-lex_lexer* lex_create()
+struct lex_lexer* lex_create()
 {
-    lex_lexer* lexer = (lex_lexer*)malloc(sizeof *lexer);
+    struct lex_lexer* lexer = (struct lex_lexer*)malloc(sizeof *lexer);
 
     if (lex_init(lexer) != ST_OK)
     {
@@ -339,7 +339,7 @@ lex_lexer* lex_create()
     return lexer;
 }
 
-e_status lex_init(lex_lexer* lexer)
+e_statuscode lex_init(struct lex_lexer* lexer)
 {
     if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0)
     {
@@ -369,7 +369,7 @@ e_status lex_init(lex_lexer* lexer)
     return ST_OK;
 }
 
-void lex_free(lex_lexer* lexer)
+void lex_free(struct lex_lexer* lexer)
 {
     if (!lexer) return;
 
@@ -377,10 +377,10 @@ void lex_free(lex_lexer* lexer)
     free(lexer);
 }
 
-void lex_destroy(lex_lexer* lexer)
+void lex_destroy(struct lex_lexer* lexer)
 {
-    lex_token* tok = lexer->token_first;
-    lex_token* tmp = NULL;
+    struct lex_token* tok = lexer->token_first;
+    struct lex_token* tmp = NULL;
 
     while (tok != NULL)
     {
@@ -397,7 +397,7 @@ void lex_destroy(lex_lexer* lexer)
     ehandler_destroy(&lexer->ehandler);
 }
 
-e_status lex_feed(lex_lexer* lexer, char c)
+e_statuscode lex_feed(struct lex_lexer* lexer, char c)
 {
     lexer->current = lexer->lookahead;
     bool eof = false;
@@ -412,7 +412,7 @@ e_status lex_feed(lex_lexer* lexer, char c)
         lexer->lookahead = c;
     }
 
-    e_status result = lex_advance(lexer);
+    e_statuscode result = lex_advance(lexer);
     lexer->eof_reached = eof;
 
     if (result != ST_NOT_INIT)

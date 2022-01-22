@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "stringbuilder.h"
 
-static int sbuilder_verify_cap(sbuilder* builder)
+static int sbuilder_verify_cap(struct sbuilder* builder)
 {
     if (!builder->cap) return 2;
 
@@ -24,7 +24,7 @@ static int sbuilder_verify_cap(sbuilder* builder)
     return 0;
 }
 
-int sbuilder_init(sbuilder* builder, size_t cap)
+int sbuilder_init(struct sbuilder* builder, size_t cap)
 {
     builder->cap = cap;
     builder->len = 0;
@@ -45,7 +45,7 @@ int sbuilder_init(sbuilder* builder, size_t cap)
     return 0;
 }
 
-void sbuilder_destroy(sbuilder* builder)
+void sbuilder_destroy(struct sbuilder* builder)
 {
     if (!builder->mem)
         return;
@@ -54,13 +54,13 @@ void sbuilder_destroy(sbuilder* builder)
     builder->mem = NULL;
 }
 
-void sbuilder_clear(sbuilder *builder)
+void sbuilder_clear(struct sbuilder *builder)
 {
     builder->len = 0;
     memset(builder->mem, 0, builder->cap + 1);
 }
 
-int sbuilder_write(sbuilder* builder, const char* addition)
+int sbuilder_write(struct sbuilder* builder, const char* addition)
 {
     if (!builder->cap)
         return 2;
@@ -77,7 +77,7 @@ int sbuilder_write(sbuilder* builder, const char* addition)
     return 0;
 }
 
-int sbuilder_vwritef(sbuilder* builder, const char* fmt, va_list args)
+int sbuilder_vwritef(struct sbuilder* builder, const char* fmt, va_list args)
 {
     if (!builder->cap) return 2;
 
@@ -104,7 +104,7 @@ int sbuilder_vwritef(sbuilder* builder, const char* fmt, va_list args)
     return result;
 }
 
-int sbuilder_writef(sbuilder* builder, const char* fmt, ...)
+int sbuilder_writef(struct sbuilder* builder, const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -116,7 +116,7 @@ int sbuilder_writef(sbuilder* builder, const char* fmt, ...)
     return result;
 }
 
-int sbuilder_write_char(sbuilder* builder, char c)
+int sbuilder_write_char(struct sbuilder* builder, char c)
 {
     if (!builder->cap)
         return 2;
@@ -132,14 +132,14 @@ int sbuilder_write_char(sbuilder* builder, char c)
     return 0;
 }
 
-char sbuilder_back(sbuilder* builder)
+char sbuilder_back(struct sbuilder* builder)
 {
     if (!builder->mem || !builder->len) return '\0';
 
     return builder->mem[builder->len - 1];
 }
 
-int sbuilder_num_consec(sbuilder* builder, bool (*func)(char), bool back)
+int sbuilder_num_consec(struct sbuilder* builder, bool (*func)(char), bool back)
 {
     if (!builder->len) return 0;
     
@@ -153,12 +153,12 @@ int sbuilder_num_consec(sbuilder* builder, bool (*func)(char), bool back)
     return n;
 }
 
-const char* sbuilder_to_string(const sbuilder* builder)
+const char* sbuilder_to_string(const struct sbuilder* builder)
 {
     return (const char*)builder->mem;
 }
 
-char* sbuilder_return(sbuilder* builder)
+char* sbuilder_return(struct sbuilder* builder)
 {
     if (!builder->mem)
         return NULL;
@@ -170,7 +170,7 @@ char* sbuilder_return(sbuilder* builder)
     return ret;
 }
 
-char* sbuilder_complete(sbuilder* builder)
+char* sbuilder_complete(struct sbuilder* builder)
 {
     if (!builder->mem) return NULL;
 

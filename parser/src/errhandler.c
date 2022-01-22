@@ -24,7 +24,7 @@ static struct err_message* ehandler_reserve(struct err_handler* handler)
 static struct err_message* ehandler_add(struct err_handler* handler, const char* err_type, const char* origin, const char* format, va_list args)
 {
     struct err_message* msg = ehandler_reserve(handler);
-    sbuilder builder;
+    struct sbuilder builder;
 
     if (sbuilder_init(&builder, 100) != ST_OK) return NULL;
 
@@ -44,7 +44,7 @@ void emessage_destroy(struct err_message* msg)
 
 char* emessage_to_string(struct err_message* msg)
 {
-    sbuilder builder;
+    struct sbuilder builder;
     
     if (sbuilder_init(&builder, 100) != ST_OK) return NULL;
 
@@ -53,7 +53,7 @@ char* emessage_to_string(struct err_message* msg)
     return sbuilder_complete(&builder);
 }
 
-e_status ehandler_init(struct err_handler* handler)
+e_statuscode ehandler_init(struct err_handler* handler)
 {
     if (!handler) return ST_INIT_FAIL;
 
