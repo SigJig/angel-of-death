@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include "lexer.h"
 
 // Begin tokenizing functions
@@ -52,6 +53,11 @@ static bool _is_car_ret(char c)
 static bool _is_line_feed(char c)
 {
     return c == '\n';
+}
+
+static struct err_message* lex_err(lex_lexer* lexer, const char* message, char c)
+{
+    return ehandler_err(&lexer->ehandler, "lexer", message, lexer->line, lexer->col);
 }
 
 static lex_token* lex_add_token(lex_lexer* lexer, lex_token_t type, char* lexeme)
@@ -203,8 +209,10 @@ static lex_e_valid lex_validate(lex_lexer* lexer, lex_token_t type, char c)
 
         case LT_DELIM: return _is_space(c) ? LV_DONE : LV_NOT;
         default:
-            // TODO: should warn
+        {
+            assert(false /*unrecognized type*/);
             return LV_NOT;
+        }
     }
 }
 
@@ -254,7 +262,7 @@ static e_status lex_advance(lex_lexer* lexer)
             }
             default:
             {
-                // TODO: Should warn / error
+                assert(false /*unrecognized status*/);
                 return ST_GEN_ERROR;
             }
         }
@@ -291,8 +299,7 @@ static e_status lex_advance(lex_lexer* lexer)
 
     if (!lexer->state.possible_length)
     {
-        // TODO err
-        printf("%c: lexer error\n", c);
+        lex_err(lexer, "unexpected charcter: ", c);
         return ST_GEN_ERROR;
     }
 
@@ -335,6 +342,11 @@ e_status lex_init(lex_lexer* lexer)
         return ST_INIT_FAIL;
     }
 
+    if (ehandler_init(&lexer->ehandler) != ST_OK)
+    {
+        return ST_INIT_FAIL;
+    }
+
     lexer->eof_reached = false;
     lexer->current = '\0';
     lexer->lookahead = '\0';
@@ -373,6 +385,7 @@ void lex_destroy(lex_lexer* lexer)
 
     sbuilder_destroy(&lexer->state.builder);
     sbuilder_destroy(&lexer->buf);
+    ehandler_destroy(&lexer->ehandler);
 }
 
 e_status lex_feed(lex_lexer* lexer, char c)

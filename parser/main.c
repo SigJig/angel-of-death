@@ -19,7 +19,18 @@ int main(int argc, char** argv)
         printf("%d: %s\n", tok->type, tok->lexeme);
 
         tok = tok->next;
-    }    
+    }
+
+    if (lexer->ehandler.len)
+    {
+        for (size_t i = 0; i < lexer->ehandler.len; i++)
+        {
+            char* msg = emessage_to_string(&lexer->ehandler.messages[i]);
+            printf(msg);
+
+            free(msg);
+        }
+    }
 
     lex_free(lexer);
 

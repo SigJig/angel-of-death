@@ -7,7 +7,8 @@
 #include <stdbool.h>
 
 #include "stringbuilder.h"
-#include "errcodes.h"
+#include "statuscode.h"
+#include "errhandler.h"
 
 typedef enum
 {
@@ -62,7 +63,8 @@ typedef struct
     size_t col;
     lex_token* token_first;
     lex_token* token_last;
-    
+
+    struct err_handler ehandler;
     sbuilder buf;
 } lex_lexer;
 

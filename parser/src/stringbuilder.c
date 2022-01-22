@@ -123,10 +123,20 @@ char* sbuilder_return(sbuilder* builder)
     if (!builder->mem)
         return NULL;
 
-    char* ret = (char*)calloc(builder->len + 1, sizeof *ret);
-    strncpy(ret, builder->mem, builder->len);
+    char* ret = strdup(builder->mem);
 
     sbuilder_clear(builder);
+
+    return ret;
+}
+
+char* sbuilder_complete(sbuilder* builder)
+{
+    if (!builder->mem) return NULL;
+
+    char* ret = strdup(builder->mem);
+
+    sbuilder_destroy(builder);
 
     return ret;
 }

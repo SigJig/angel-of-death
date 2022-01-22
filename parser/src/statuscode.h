@@ -1,6 +1,6 @@
 
-#ifndef ERRCODES_H
-#define ERRCODES_H
+#ifndef STATUSCODE_H
+#define STATUSCODE_H
 
 typedef enum {
     ST_OK = 0,
@@ -11,4 +11,4 @@ typedef enum {
     ST_GEN_ERROR
 } e_status;
 
-#endif // ERRCODES_H
+#endif // STATUSCODE_H

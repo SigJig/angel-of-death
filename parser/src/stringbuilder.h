@@ -33,4 +33,7 @@ const char* sbuilder_to_string(const sbuilder* builder);
 // Clears the sbuilder to be reused, and then returns a heap allocated char* (must be freed)
 char* sbuilder_return(sbuilder* builder);
 
+// Destroys the builder and returns a heap allocated char* (must be freed)
+char* sbuilder_complete(sbuilder* builder);
+
 #endif // STRINGBUILDER_H

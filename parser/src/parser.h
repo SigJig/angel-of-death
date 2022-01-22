@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #include "lexer.h"
-#include "errcodes.h"
+#include "statuscode.h"
 
 #define HAS_XREF    (1 << 0)
 #define HAS_LINEVAL (1 << 1)
