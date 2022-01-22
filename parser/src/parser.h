@@ -28,7 +28,7 @@ typedef struct
     parser_line* lines;
 } parser_result;
 
-e_status parser_parse_token(lex_token* token);
+//e_status parser_parse_token(lex_token* token);
 parser_result parser_parse(lex_token* tokens);
 
 #endif // PARSER_H

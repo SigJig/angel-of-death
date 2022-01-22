@@ -66,7 +66,7 @@ e_status ehandler_init(struct err_handler* handler)
     handler->cap = CAP_INIT_SZ;
     handler->messages = (struct err_message*)malloc((sizeof *handler->messages) * CAP_INIT_SZ);
 
-    if (handler->messages) return ST_INIT_FAIL;
+    if (!handler->messages) return ST_INIT_FAIL;
 
     return ST_OK;
 }

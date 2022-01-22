@@ -18,7 +18,6 @@ typedef enum
     LT_S_ALNUM, // sequence alnum
     LT_S_ANYCHAR,
     LT_ESCAPE,
-    LT_LINE_ITEM,
     LT_DELIM,
     LT_INVALID // should always be last
 } lex_token_t;
