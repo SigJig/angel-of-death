@@ -27,7 +27,7 @@ static e_statuscode parser_init(struct parser* parser, struct err_handler* ehand
     parser->result.back = NULL;
     parser->ehandler = ehandler;
     
-    if (ehandler_init(&parser->result.ehandler) != ST_OK)
+    if (!ehandler)
     {
         return ST_INIT_FAIL;
     }
@@ -177,8 +177,6 @@ void parser_result_destroy(struct parser_result* result)
 
         parser_line_free(tmp);
     }
-
-    ehandler_destroy(&result->ehandler);
 }
 
 e_statuscode parser_parse_token(struct parser* parser, struct lex_token* token)
