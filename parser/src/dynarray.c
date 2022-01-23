@@ -25,12 +25,14 @@ struct dyn_array* da_create(size_t cap, size_t byte_n)
     da->byte_n = byte_n;
 
     da->mem = malloc(da->cap * da->byte_n);
+
+    if (!da->mem) return NULL;
 }
 
 void da_free(struct dyn_array* da)
 {
-    free(da->mem);
-    free(da);
+    if (da->mem) free(da->mem);
+    if (da)      free(da);
 }
 
 void* da_reserve(struct dyn_array* da)
@@ -43,6 +45,8 @@ void* da_reserve(struct dyn_array* da)
 
         da->cap *= mult_factor;
         da->mem = realloc(da->mem, da->cap * da->byte_n);
+
+        if (!da->mem) return NULL;
     }
 
     return da_get_unsafe(da, da->len - 1);
