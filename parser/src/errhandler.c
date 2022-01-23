@@ -8,24 +8,9 @@
 #define CAP_INIT_SZ 10
 #define CAP_MULT_FAC 2
 
-static struct err_message* ehandler_reserve(struct err_handler* handler)
-{
-    handler->len += 1;
-
-    if (handler->len > handler->cap)
-    {
-        int mult_fac = (handler->len / handler->cap + (handler->len % handler->cap != 0)) * CAP_MULT_FAC;
-        handler->cap *= mult_fac;
-
-        handler->messages = realloc(handler->messages, handler->cap * (sizeof *handler->messages));
-    }
-
-    return &handler->messages[handler->len - 1];
-}
-
 static struct err_message* ehandler_add(struct err_handler* handler, const char* err_type, const char* origin, const char* format, va_list args)
 {
-    struct err_message* msg = ehandler_reserve(handler);
+    struct err_message* msg = da_reserve(handler->messages);
     struct sbuilder builder;
 
     if (sbuilder_init(&builder, 100) != ST_OK) return NULL;
@@ -59,12 +44,9 @@ e_statuscode ehandler_init(struct err_handler* handler)
 {
     if (!handler) return ST_INIT_FAIL;
 
-    handler->len = 0;
-
     assert(CAP_INIT_SZ);
 
-    handler->cap = CAP_INIT_SZ;
-    handler->messages = malloc((sizeof *handler->messages) * CAP_INIT_SZ);
+    handler->messages = da_create(CAP_INIT_SZ, sizeof *handler->messages);
 
     if (!handler->messages) return ST_INIT_FAIL;
 
@@ -73,12 +55,22 @@ e_statuscode ehandler_init(struct err_handler* handler)
 
 void ehandler_destroy(struct err_handler* handler)
 {
-    for (size_t i = 0; i < handler->len; i++)
+    for (size_t i = 0; i < handler->messages->len; i++)
     {
-        emessage_destroy(&handler->messages[i]);
+        emessage_destroy(da_get(handler->messages, i));
     }
 
-    free(handler->messages);
+    da_free(handler->messages);
+}
+
+size_t ehandler_len(struct err_handler* handler)
+{
+    return handler->messages->len;
+}
+
+struct err_message* ehandler_get(struct err_handler* handler, size_t index)
+{
+    return da_get(handler->messages, index);
 }
 
 struct err_message* ehandler_verrf(struct err_handler* handler, const char* origin, const char* format, va_list args)

@@ -32,12 +32,13 @@ int main(int argc, char** argv)
     }
 
     struct parser_result result = parser_parse(lexer->token_first, &ehandler);
+    size_t len = ehandler_len(&ehandler);
 
-    if (ehandler.len)
+    if (len)
     {
-        for (size_t i = 0; i < ehandler.len; i++)
+        for (size_t i = 0; i < len; i++)
         {
-            char* msg = emessage_to_string(&ehandler.messages[i]);
+            char* msg = emessage_to_string(ehandler_get(&ehandler, i));
             printf("%s\n", msg);
 
             free(msg);

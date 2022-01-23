@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include "dynarray.h"
 #include "stringbuilder.h"
 #include "statuscode.h"
 
@@ -16,13 +17,14 @@ struct err_message
 
 struct err_handler
 {
-    struct err_message* messages;
-    size_t len;
-    size_t cap;
+    struct dyn_array* messages;
 };
 
 e_statuscode ehandler_init(struct err_handler* handler);
 void ehandler_destroy(struct err_handler* handler);
+size_t ehandler_len(struct err_handler* handler);
+
+struct err_message* ehandler_get(struct err_handler* handler, size_t index);
 
 void emessage_destroy(struct err_message* msg);
 char* emessage_to_string(struct err_message* msg);
