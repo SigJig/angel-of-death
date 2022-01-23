@@ -12,7 +12,7 @@ static int sbuilder_verify_cap(struct sbuilder* builder)
         
         if (builder->mem)
         {
-            builder->mem = (char*)realloc(builder->mem, (sizeof *builder->mem) * (builder->cap + 1));
+            builder->mem = realloc(builder->mem, (sizeof *builder->mem) * (builder->cap + 1));
             
             if (!builder->mem)
                 return 1;
@@ -36,7 +36,7 @@ int sbuilder_init(struct sbuilder* builder, size_t cap)
     }
     else
     {
-        builder->mem = (char*)calloc(cap + 1, sizeof *builder->mem);
+        builder->mem = calloc(cap + 1, sizeof *builder->mem);
 
         if (!builder->mem)
             return 2;
@@ -88,7 +88,7 @@ int sbuilder_vwritef(struct sbuilder* builder, const char* fmt, va_list args)
 
     if (required <= 0) return 2;
 
-    char* mem = (char*)calloc(required, sizeof *mem);
+    char* mem = calloc(required, sizeof *mem);
 
     if (!mem)
         return 1;

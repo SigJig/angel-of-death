@@ -15,7 +15,7 @@ static struct err_message* ehandler_reserve(struct err_handler* handler)
     {
         int mult_fac = (handler->len / handler->cap + (handler->len % handler->cap != 0)) * CAP_MULT_FAC;
 
-        handler->messages = (struct err_message*)realloc(handler->messages, ((sizeof *handler->messages) * handler->cap) * mult_fac);
+        handler->messages = realloc(handler->messages, ((sizeof *handler->messages) * handler->cap) * mult_fac);
     }
 
     return &handler->messages[handler->len - 1];
@@ -59,7 +59,7 @@ e_statuscode ehandler_init(struct err_handler* handler)
 
     handler->len = 0;
     handler->cap = CAP_INIT_SZ;
-    handler->messages = (struct err_message*)malloc((sizeof *handler->messages) * CAP_INIT_SZ);
+    handler->messages = malloc((sizeof *handler->messages) * CAP_INIT_SZ);
 
     if (!handler->messages) return ST_INIT_FAIL;
 

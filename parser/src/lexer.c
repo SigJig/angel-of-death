@@ -74,7 +74,7 @@ static struct err_message* lex_err_unexpected(struct lex_lexer* lexer, char c)
 
 static struct lex_token* lex_add_token(struct lex_lexer* lexer, lex_token_type type, char* lexeme)
 {
-    struct lex_token* newtok = (struct lex_token*)malloc(sizeof *newtok);
+    struct lex_token* newtok = malloc(sizeof *newtok);
 
     if (!newtok)
         return NULL;
@@ -311,7 +311,7 @@ END INTERNAL
 
 struct lex_token* lex_token_copy(struct lex_token* token)
 {
-    struct lex_token* copy = (struct lex_token*)malloc(sizeof *copy);
+    struct lex_token* copy = malloc(sizeof *copy);
     copy->type = token->type;
     copy->lexeme = strdup(token->lexeme);
     copy->line = token->line;
@@ -338,7 +338,7 @@ void lex_token_free(struct lex_token* token)
 
 struct lex_lexer* lex_create(struct err_handler* ehandler)
 {
-    struct lex_lexer* lexer = (struct lex_lexer*)malloc(sizeof *lexer);
+    struct lex_lexer* lexer = malloc(sizeof *lexer);
 
     if (lex_init(lexer, ehandler) != ST_OK)
     {
