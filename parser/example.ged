@@ -1,0 +1,5 @@
+0 @1234@ INDI
+1 AGE 13y
+1 CHIL @1234@
+1 NOTE This is a note field that is
+    2 CONT continued on the next line

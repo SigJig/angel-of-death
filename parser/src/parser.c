@@ -185,6 +185,12 @@ e_statuscode parser_parse_token(struct parser* parser, struct lex_token* token)
     
     parser->state.index++;
 
+    // leading whitespace
+    if (index && token->type == LT_WHITESPACE || token->type == LT_DELIM || token->type == LT_TERMINATOR)
+    {
+        return ST_NOT_OK;
+    }
+
     if (index < 6 && index & 1)
     {
         if (token->type == LT_DELIM) return ST_NOT_OK;

@@ -28,8 +28,6 @@ struct parser_result
 {
     struct parser_line* front;
     struct parser_line* back;
-
-    struct err_handler ehandler;
 };
 
 struct parser

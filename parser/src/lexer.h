@@ -19,6 +19,7 @@ typedef enum
     LT_S_ANYCHAR,
     LT_ESCAPE,
     LT_DELIM,
+    LT_WHITESPACE,
     LT_INVALID // should always be last
 } lex_token_type;
 

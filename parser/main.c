@@ -10,7 +10,11 @@ int main(int argc, char** argv)
 
     struct lex_lexer* lexer = lex_create(&ehandler);
 
-    const char* teststring = "0 @1NAME@ Jahck @anychar escape sequence @ hmm\n\r";
+    const char* teststring =
+    "0 @1NAME@ Jahck @anychar escape sequence @ hmm\n\r";
+
+
+
     printf("sizeof lexer: %zu\nsizeof token: %zu\nsizeof struct sbuilder: %zu\n", sizeof(struct lex_lexer), sizeof(struct lex_token), sizeof(struct sbuilder));
     printf("sizeof char*: %zu\nsizeof size_t: %zu\nsizeof enum: %zu\n", sizeof(char*), sizeof(size_t), sizeof(lex_token_type));
 

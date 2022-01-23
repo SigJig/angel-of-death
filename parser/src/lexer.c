@@ -203,6 +203,7 @@ static lex_e_valid lex_validate(struct lex_lexer* lexer, lex_token_type type, ch
         }
 
         case LT_DELIM: return _is_space(c) ? LV_DONE : LV_NOT;
+        case LT_WHITESPACE: return (_is_space(c) || c == '\t') ? LV_DONE : LV_NOT;
         default:
         {
             assert(false /*unrecognized type*/);
