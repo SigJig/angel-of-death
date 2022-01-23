@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #define CAP_INIT_SZ 10
 #define CAP_MULT_FAC 2
@@ -14,8 +15,9 @@ static struct err_message* ehandler_reserve(struct err_handler* handler)
     if (handler->len > handler->cap)
     {
         int mult_fac = (handler->len / handler->cap + (handler->len % handler->cap != 0)) * CAP_MULT_FAC;
+        handler->cap *= mult_fac;
 
-        handler->messages = realloc(handler->messages, ((sizeof *handler->messages) * handler->cap) * mult_fac);
+        handler->messages = realloc(handler->messages, handler->cap * (sizeof *handler->messages));
     }
 
     return &handler->messages[handler->len - 1];
@@ -58,6 +60,9 @@ e_statuscode ehandler_init(struct err_handler* handler)
     if (!handler) return ST_INIT_FAIL;
 
     handler->len = 0;
+
+    assert(CAP_INIT_SZ);
+
     handler->cap = CAP_INIT_SZ;
     handler->messages = malloc((sizeof *handler->messages) * CAP_INIT_SZ);
 
