@@ -6,7 +6,7 @@
 
 struct dyn_array
 {
-    char* mem; // char is 1 byte, and since pointer arithmetic does not work on void*, we use char* and cast to void* on return
+    void* mem;
     size_t len;
     size_t cap;
     size_t byte_n;

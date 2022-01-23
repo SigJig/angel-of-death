@@ -1,7 +1,9 @@
 
+#include <dynarray.h>
 #include <lexer.h>
 #include <parser.h>
 #include <stdio.h>
+#include <assert.h>
 
 int main(int argc, char** argv)
 {
@@ -45,6 +47,25 @@ int main(int argc, char** argv)
     ehandler_destroy(&ehandler);
     lex_free(lexer);
     parser_result_destroy(&result);
+
+    int nums[10] = {0};
+    struct dyn_array* da = da_create(4, sizeof &nums);
+
+    int** n = da_reserve(da);
+    *n = &nums[4];
+    **n += 1;
+
+    int **x = da_reserve(da);
+    *x = &nums[3];
+    **x += 5;
+
+    int* l = *(int**)da_pop(da);
+    assert(l == &nums[3]);
+
+    int** s = da_pop(da);
+    assert(*s == &nums[4]);
+
+    da_free(da);
 
     return 0;
 }

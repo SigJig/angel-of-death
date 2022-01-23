@@ -21,7 +21,7 @@ struct ged_record
     char* xref;
     char* tag;
 
-    struct line_value* value;
+    struct ged_line_value* value;
 
     struct ged_record* children;
     uint8_t len_children;

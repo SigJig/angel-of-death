@@ -8,7 +8,8 @@
 
 static void* da_get_unsafe(struct dyn_array* da, size_t index)
 {
-    return da->mem + (index * da->byte_n);
+    // cast because void* does not support pointer arithmetic
+    return ((char*)da->mem) + (index * da->byte_n);
 }
 
 struct dyn_array* da_create(size_t cap, size_t byte_n)
@@ -60,7 +61,7 @@ void* da_pop(struct dyn_array* da)
 {
     if (da->len <= 0) return NULL;
 
-    da->len--;
+    //da->len--;
 
-    return da_get_unsafe(da, da->len);
+    return da_get_unsafe(da, --da->len);
 }
