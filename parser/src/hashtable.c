@@ -2,6 +2,7 @@
 #include "hashtable.h"
 
 #include <string.h>
+#include <assert.h>
 
 // 32bit
 #define FNV1A_PRIME 0x01000193
