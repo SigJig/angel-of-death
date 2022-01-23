@@ -11,11 +11,6 @@ static void* da_get_unsafe(struct dyn_array* da, size_t index)
     return da->mem + (index * da->byte_n);
 }
 
-static void da_unset_unsafe(struct dyn_array* da, size_t index)
-{
-    memset(da_get_unsafe(da, index), 0, da->cap - index);
-}
-
 struct dyn_array* da_create(size_t cap, size_t byte_n)
 {
     if (!cap || !byte_n) return NULL;
@@ -69,9 +64,3 @@ void* da_pop(struct dyn_array* da)
 
     return da_get_unsafe(da, da->len);
 }
-
-/*
-struct dyn_array* da
-
-
-*/
