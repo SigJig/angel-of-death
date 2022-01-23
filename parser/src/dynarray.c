@@ -44,7 +44,7 @@ void* da_reserve(struct dyn_array* da)
         da->mem = realloc(da->mem, da->cap * da->byte_n);
     }
 
-    return da->mem + ((da->len - 1) * da->byte_n);
+    return da_get_unsafe(da, da->len - 1);
 }
 
 void* da_get(struct dyn_array* da, size_t index)
