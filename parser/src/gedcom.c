@@ -128,10 +128,37 @@ struct ged_record* ged_record_construct(struct ged_builder* ged, struct parser_l
     {
         //rec->value = malloc(sizeof *rec->value);
         // TODO: Build value
+        assert(8 == sizeof(line->line_value->lexeme));
+        rec->value = da_create(10, sizeof (line->line_value->lexeme));
+
+        struct lex_token* tok = line->line_value;
+        
+        while(tok)
+        {
+            char** mem = da_reserve(rec->value);
+            
+            if (!mem)
+            {
+                builder_errf(ged, "malloc errror");
+
+                goto error;
+            }
+
+            *mem = strdup(tok->lexeme);
+
+            tok = tok->next;
+        }
+ 
     }
     else
     {
         rec->value = NULL;
+    }
+
+    if (builder_stack_add(ged, rec) != ST_OK)
+    {
+        assert(false);
+        // TODO: error
     }
 
     return rec;
@@ -142,17 +169,25 @@ error:
     return NULL;
 }
 
-void ged_line_value_free(struct ged_line_value* val)
-{
-    free(val->mem);
-    free(val);
-}
-
 void ged_record_free(struct ged_record* rec)
 {
     if (rec->xref)  free(rec->xref);
     if (rec->tag)   free(rec->tag);
-    if (rec->value) ged_line_value_free(rec->value);
+
+    if (rec->value)
+    {
+        for (size_t i = 0; i < rec->value->len; i++)
+        {
+            char** mem = da_get(rec->value, i);
+
+            if (mem && *mem)
+            {
+                free(*mem);
+            }
+        }
+
+        da_free(rec->value);
+    }
 
     for (uint8_t i = 0; i < rec->len_children; i++)
     {
