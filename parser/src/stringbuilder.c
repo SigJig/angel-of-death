@@ -1,182 +1,193 @@
 
-#include <stdio.h>
 #include "stringbuilder.h"
+#include <stdio.h>
 
-static int sbuilder_verify_cap(struct sbuilder* builder)
+static int sbuilder_verify_cap(struct sbuilder *builder)
 {
-    if (!builder->cap) return 2;
+	if (!builder->cap)
+		return 2;
 
-    if (builder->len >= builder->cap)
-    {
-        builder->cap *= SBUILDER_DEFAULT_CAP_MULT * ((builder->len / builder->cap) + (builder->len % builder->cap != 0));
-        
-        if (builder->mem)
-        {
-            builder->mem = realloc(builder->mem, (sizeof *builder->mem) * (builder->cap + 1));
-            
-            if (!builder->mem)
-                return 1;
+	if (builder->len >= builder->cap) {
+		builder->cap *= SBUILDER_DEFAULT_CAP_MULT *
+				((builder->len / builder->cap) +
+				 (builder->len % builder->cap != 0));
 
-            memset(builder->mem + builder->len, 0, builder->cap + 1 - builder->len);
-        }
-    }
+		if (builder->mem) {
+			builder->mem =
+			    realloc(builder->mem, (sizeof *builder->mem) *
+						      (builder->cap + 1));
 
-    return 0;
+			if (!builder->mem)
+				return 1;
+
+			memset(builder->mem + builder->len, 0,
+			       builder->cap + 1 - builder->len);
+		}
+	}
+
+	return 0;
 }
 
-int sbuilder_init(struct sbuilder* builder, size_t cap)
+int sbuilder_init(struct sbuilder *builder, size_t cap)
 {
-    builder->cap = cap;
-    builder->len = 0;
+	builder->cap = cap;
+	builder->len = 0;
 
-    if (cap < 1)
-    {
-        builder->mem = NULL;
-        return 1;
-    }
-    else
-    {
-        builder->mem = calloc(cap + 1, sizeof *builder->mem);
+	if (cap < 1) {
+		builder->mem = NULL;
+		return 1;
+	} else {
+		builder->mem = calloc(cap + 1, sizeof *builder->mem);
 
-        if (!builder->mem)
-            return 2;
-    }
+		if (!builder->mem)
+			return 2;
+	}
 
-    return 0;
+	return 0;
 }
 
-void sbuilder_destroy(struct sbuilder* builder)
+void sbuilder_destroy(struct sbuilder *builder)
 {
-    if (!builder->mem)
-        return;
+	if (!builder->mem)
+		return;
 
-    free(builder->mem);
-    builder->mem = NULL;
+	free(builder->mem);
+	builder->mem = NULL;
 }
 
 void sbuilder_clear(struct sbuilder *builder)
 {
-    builder->len = 0;
-    memset(builder->mem, 0, builder->cap + 1);
+	builder->len = 0;
+	memset(builder->mem, 0, builder->cap + 1);
 }
 
-int sbuilder_write(struct sbuilder* builder, const char* addition)
+int sbuilder_write(struct sbuilder *builder, const char *addition)
 {
-    if (!builder->cap)
-        return 2;
+	if (!builder->cap)
+		return 2;
 
-    int length = strlen(addition);
-    int initial_length = builder->len;
-    builder->len += length;
+	int length = strlen(addition);
+	int initial_length = builder->len;
+	builder->len += length;
 
-    int verified = sbuilder_verify_cap(builder);
-    if (verified != 0) return verified;
+	int verified = sbuilder_verify_cap(builder);
+	if (verified != 0)
+		return verified;
 
-    strncpy(builder->mem + initial_length, addition, length);
+	strncpy(builder->mem + initial_length, addition, length);
 
-    return 0;
+	return 0;
 }
 
-int sbuilder_vwritef(struct sbuilder* builder, const char* fmt, va_list args)
+int sbuilder_vwritef(struct sbuilder *builder, const char *fmt, va_list args)
 {
-    if (!builder->cap) return 2;
+	if (!builder->cap)
+		return 2;
 
-    va_list copy;
-    va_copy(copy, args);
+	va_list copy;
+	va_copy(copy, args);
 
-    int required = vsnprintf(NULL, 0, fmt, args) + 1;
+	int required = vsnprintf(NULL, 0, fmt, args) + 1;
 
-    if (required <= 0) return 2;
+	if (required <= 0)
+		return 2;
 
-    char* mem = calloc(required, sizeof *mem);
+	char *mem = calloc(required, sizeof *mem);
 
-    if (!mem)
-        return 1;
+	if (!mem)
+		return 1;
 
-    vsprintf(mem, fmt, copy);
+	vsprintf(mem, fmt, copy);
 
-    va_end(copy);
+	va_end(copy);
 
-    int result = sbuilder_write(builder, mem);
+	int result = sbuilder_write(builder, mem);
 
-    free(mem);
+	free(mem);
 
-    return result;
+	return result;
 }
 
-int sbuilder_writef(struct sbuilder* builder, const char* fmt, ...)
+int sbuilder_writef(struct sbuilder *builder, const char *fmt, ...)
 {
-    va_list args;
-    va_start(args, fmt);
+	va_list args;
+	va_start(args, fmt);
 
-    int result = sbuilder_vwritef(builder, fmt, args);
+	int result = sbuilder_vwritef(builder, fmt, args);
 
-    va_end(args);
+	va_end(args);
 
-    return result;
+	return result;
 }
 
-int sbuilder_write_char(struct sbuilder* builder, char c)
+int sbuilder_write_char(struct sbuilder *builder, char c)
 {
-    if (!builder->cap)
-        return 2;
+	if (!builder->cap)
+		return 2;
 
-    int initial_length = builder->len;
-    builder->len += 1;
+	int initial_length = builder->len;
+	builder->len += 1;
 
-    int verified = sbuilder_verify_cap(builder);
-    if (verified != 0) return verified;
+	int verified = sbuilder_verify_cap(builder);
+	if (verified != 0)
+		return verified;
 
-    builder->mem[initial_length] = c;
+	builder->mem[initial_length] = c;
 
-    return 0;
+	return 0;
 }
 
-char sbuilder_back(struct sbuilder* builder)
+char sbuilder_back(struct sbuilder *builder)
 {
-    if (!builder->mem || !builder->len) return '\0';
+	if (!builder->mem || !builder->len)
+		return '\0';
 
-    return builder->mem[builder->len - 1];
+	return builder->mem[builder->len - 1];
 }
 
-int sbuilder_num_consec(struct sbuilder* builder, bool (*func)(char), bool back)
+int sbuilder_num_consec(struct sbuilder *builder, bool (*func)(char), bool back)
 {
-    if (!builder->len) return 0;
-    
-    int n = 0;
+	if (!builder->len)
+		return 0;
 
-    if (back)
-        for (int i = builder->len - 1; i >= 0 && func(builder->mem[i]); i--) n++;
-    else
-        for (int i = 0; i < builder->len && func(builder->mem[i]); i++) n++;
-    
-    return n;
+	int n = 0;
+
+	if (back)
+		for (int i = builder->len - 1; i >= 0 && func(builder->mem[i]);
+		     i--)
+			n++;
+	else
+		for (int i = 0; i < builder->len && func(builder->mem[i]); i++)
+			n++;
+
+	return n;
 }
 
-const char* sbuilder_to_string(const struct sbuilder* builder)
+const char *sbuilder_to_string(const struct sbuilder *builder)
 {
-    return (const char*)builder->mem;
+	return (const char *)builder->mem;
 }
 
-char* sbuilder_return(struct sbuilder* builder)
+char *sbuilder_return(struct sbuilder *builder)
 {
-    if (!builder->mem)
-        return NULL;
+	if (!builder->mem)
+		return NULL;
 
-    char* ret = strdup(builder->mem);
+	char *ret = strdup(builder->mem);
 
-    sbuilder_clear(builder);
+	sbuilder_clear(builder);
 
-    return ret;
+	return ret;
 }
 
-char* sbuilder_complete(struct sbuilder* builder)
+char *sbuilder_complete(struct sbuilder *builder)
 {
-    if (!builder->mem) return NULL;
+	if (!builder->mem)
+		return NULL;
 
-    char* ret = strdup(builder->mem);
+	char *ret = strdup(builder->mem);
 
-    sbuilder_destroy(builder);
+	sbuilder_destroy(builder);
 
-    return ret;
+	return ret;
 }
