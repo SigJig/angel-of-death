@@ -56,6 +56,7 @@ static void builder_destroy(struct ged_builder *ged)
 {
 	if (ged->stack->len) {
 		for (size_t i = 0; i < ged->stack->len; i++) {
+
 			ged_record_free(
 			    *(struct ged_record **)da_get(ged->stack, i));
 		}
@@ -97,14 +98,17 @@ struct ged_record *ged_record_construct(struct ged_builder *ged,
 			     "gedcom standard disallows leading 0 on level "
 			     "declarations (%s)",
 			     level);
+
 	} else if (level_parsed == 0) {
 		builder_errf(ged, "unable to parse %s as level", level);
 		goto error;
 	}
+
 	rec->level = level_parsed;
 
 	if (line->xref) {
 		rec->xref = strdup(line->xref->lexeme);
+
 		// add to symbol table
 		if (ht_get(ged->xrefs, rec->xref) != NULL) {
 			builder_errf(ged, "xref %s already defined", rec->xref);
@@ -161,10 +165,12 @@ error:
 
 void ged_record_free(struct ged_record *rec)
 {
-	if (rec->xref)
+	if (rec->xref) {
 		free(rec->xref);
-	if (rec->tag)
+	}
+	if (rec->tag) {
 		free(rec->tag);
+	}
 
 	if (rec->value) {
 		for (size_t i = 0; i < rec->value->len; i++) {
