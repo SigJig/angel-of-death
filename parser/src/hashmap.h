@@ -1,6 +1,6 @@
 
-#ifndef HASHTABLE_H
-#define HASHTABLE_H
+#ifndef HASHMAP_H
+#define HASHMAP_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -32,4 +32,4 @@ void *ht_get(struct hash_table *ht, const char *key);
 void ht_set(struct hash_table *ht, const char *key, void *value);
 void *ht_del(struct hash_table *ht, const char *key);
 
-#endif // HASHTABLE_H
+#endif // HASHMAP_H

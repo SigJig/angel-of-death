@@ -4,7 +4,7 @@
 
 #include "dynarray.h"
 #include "gedcom.h"
-#include "hashtable.h"
+#include "hashmap.h"
 
 #define DEFAULT_STACK_CAP 100
 #define DEFAULT_STACK_CAP_MULT 2

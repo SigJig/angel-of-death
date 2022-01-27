@@ -1,5 +1,5 @@
 
-#include "hashtable.h"
+#include "hashmap.h"
 
 #include <assert.h>
 #include <string.h>
