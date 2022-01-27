@@ -129,7 +129,7 @@ struct ged_record *ged_record_construct(struct ged_builder *ged,
 		// rec->value = malloc(sizeof *rec->value);
 		// TODO: Build value
 		assert(8 == sizeof(line->line_value->lexeme));
-		rec->value = da_create(10, sizeof(*line->line_value->lexeme));
+		rec->value = da_create(10, sizeof(line->line_value->lexeme));
 
 		struct lex_token *tok = line->line_value;
 
