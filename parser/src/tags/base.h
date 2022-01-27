@@ -11,9 +11,16 @@ struct tag_base {
 	char *name;
 };
 
+struct tag_interface;
+
+typedef struct tag_base *(*fn_create)(struct tag_interface,
+				      struct ged_record *);
+
+typedef void (*fn_free)(struct tag_base *);
+
 struct tag_interface {
-	struct tag_base *(*create)(struct tag_interface, struct ged_record *);
-	void (*free)(struct tag_base *);
+	fn_create create;
+	fn_free free;
 };
 
 void tag_base_free(struct tag_base *tag);
