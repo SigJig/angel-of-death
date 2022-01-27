@@ -7,7 +7,7 @@
 #include "tags/month.h"
 
 // Hashtable of tag interfaces
-static struct hash_table *tags_ht;
+static struct hash_table *tags_ht = NULL;
 
 static struct hash_table *tags_ht_instance()
 {
@@ -32,17 +32,17 @@ void tags_init()
 
 	/*
 	Array of modules, only used for initialization as the contents of
-    this are added to the hash_table through the init function added
-    here.
+	this are added to the hash_table through the init function added
+	here.
 
-    Each module should contain an init function following the signature:
-    void init_module(struct hash_table*);
+	Each module should contain an init function following the signature:
+	void init_module(struct hash_table*);
 
-    This array is kept inside this function, and not inside the global scope,
-    as this function is called only once. Keeping this array in global space
-    would then be unnecessary memory usage throughout the runtime of the
-    program.
-	*/
+	This array is kept inside this function, and not inside the global
+	scope, as this function is called only once. Keeping this array in
+	global space would then be unnecessary memory usage throughout the
+	runtime of the program.
+    */
 	const void (*init_modules[])(struct hash_table *) = {
 	    init_months,
 	};
