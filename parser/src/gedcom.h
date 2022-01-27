@@ -27,4 +27,6 @@ struct ged_record *ged_record_construct(struct ged_builder *ged,
 
 void ged_record_free(struct ged_record *rec);
 
+const char *ged_record_value(struct ged_record *rec, size_t index);
+
 #endif // GEDCOM_H
