@@ -18,6 +18,7 @@ struct sbuilder {
 
 int sbuilder_init(struct sbuilder* builder, size_t cap);
 void sbuilder_destroy(struct sbuilder* builder);
+
 void sbuilder_clear(struct sbuilder* builder);
 
 int sbuilder_write(struct sbuilder* builder, const char* addition);

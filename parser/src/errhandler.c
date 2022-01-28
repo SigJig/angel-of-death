@@ -43,6 +43,7 @@ void
 emessage_destroy(struct err_message* msg)
 {
     free(msg->message);
+    free(msg);
 }
 
 char*

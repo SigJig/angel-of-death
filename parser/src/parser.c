@@ -1,5 +1,6 @@
 
 #include "parser.h"
+#include "stringbuilder.h"
 #include <stdarg.h>
 
 static struct parser_line*
@@ -15,6 +16,7 @@ parser_curline_reset(struct parser* parser)
     cur_line->next = NULL;
 
     parser->state.cur_line = cur_line;
+    parser->state.index = 0;
 
     return old;
 }
@@ -169,6 +171,40 @@ parser_line_free(struct parser_line* line)
     free(line);
 }
 
+char*
+parser_line_to_string(struct parser_line* line)
+{
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, 40) != ST_OK) {
+        return NULL;
+    }
+
+    sbuilder_writef(&builder, "<LINE %s:", line->level->lexeme);
+
+    if (line->xref != NULL) {
+        sbuilder_writef(&builder, " (%s)", line->xref->lexeme);
+    }
+
+    sbuilder_writef(&builder, " %s", line->tag->lexeme);
+
+    if (line->line_value != NULL) {
+        sbuilder_write(&builder, " = ");
+
+        struct lex_token* tok = line->line_value;
+
+        while (tok) {
+            sbuilder_writef(&builder, "%s;", tok->lexeme);
+
+            tok = tok->next;
+        }
+    }
+
+    sbuilder_write(&builder, ">");
+
+    return sbuilder_complete(&builder);
+}
+
 void
 parser_result_destroy(struct parser_result* result)
 {
@@ -183,6 +219,17 @@ parser_result_destroy(struct parser_result* result)
     }
 }
 
+/*
+gedcom_line:
+        0: level
+        1: delim
+        2: xref?
+        3: delim?
+        4: tag
+        5: delim?
+        6+: line_value?
+        n: terminator
+*/
 e_statuscode
 parser_parse_token(struct parser* parser, struct lex_token* token)
 {
@@ -191,25 +238,40 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
     parser->state.index++;
 
     // leading whitespace
-    if (index && token->type == LT_WHITESPACE || token->type == LT_DELIM ||
-        token->type == LT_TERMINATOR) {
+    if (!index && (token->type == LT_WHITESPACE || token->type == LT_DELIM ||
+                   token->type == LT_TERMINATOR)) {
         return ST_NOT_OK;
     }
 
     if (index < 6 && index & 1) {
-        if (token->type == LT_DELIM)
+        if (token->type == LT_DELIM) {
             return ST_NOT_OK;
+        } else if (!(index == 5 && token->type == LT_TERMINATOR)) {
+            // If index 5 is not a delimeter, it must be a terminator.
+            // Index 5
 
-        parser_err_unexpected(parser, token);
-        return ST_GEN_ERROR;
-    } else if (index > 6 && token->type == LT_TERMINATOR) {
+            parser_err_unexpected(parser, token);
+            return ST_GEN_ERROR;
+        }
+    }
+
+    if (index > 4 && token->type == LT_TERMINATOR) {
         parser_curline_terminate(parser);
         return ST_OK;
     }
 
     if (!parser_valid_at_idx(parser, token, index)) {
-        parser_err_unexpected(parser, token);
-        return ST_GEN_ERROR;
+        if (index != 2) {
+            parser_err_unexpected(parser, token);
+            return ST_GEN_ERROR;
+        }
+
+        // xref, optional. if it does not match consider current token a tag
+        // increment the index by 2 (has already been incremented by one at
+        // the start of the function)
+        parser->state.index++;
+
+        return parser_parse_token(parser, token);
     }
 
     parser_update_at(parser, token, index);

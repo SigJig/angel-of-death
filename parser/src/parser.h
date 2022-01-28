@@ -8,9 +8,6 @@
 #include "lexer.h"
 #include "statuscode.h"
 
-#define HAS_XREF (1 << 0)
-#define HAS_LINEVAL (1 << 1)
-
 #define LEVEL_MAX 99
 #define LEVEL_INVALID -1
 
@@ -41,7 +38,9 @@ struct parser {
     struct parser_result result;
 };
 
-void parser_line_free(struct parser_line*);
+void parser_line_free(struct parser_line* line);
+char* parser_line_to_string(struct parser_line* line);
+
 void parser_result_destroy(struct parser_result* result);
 
 e_statuscode parser_parse_token(struct parser* parser, struct lex_token* token);

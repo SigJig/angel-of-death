@@ -337,6 +337,10 @@ END INTERNAL
 struct lex_token*
 lex_token_copy(struct lex_token* token)
 {
+    if (!token) {
+        return NULL;
+    }
+
     struct lex_token* copy = malloc(sizeof *copy);
     copy->type = token->type;
     copy->lexeme = strdup(token->lexeme);

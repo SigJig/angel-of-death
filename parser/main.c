@@ -45,12 +45,32 @@ from_example(const char* path)
     printf("LEXER DONE: \n");
     struct lex_token* tok = lexer->token_first;
 
-    while (tok) {
+#if 1
+    int index = 0;
+    while (tok && index < 10) {
         if (tok->type != LT_DELIM && tok->type != LT_WHITESPACE)
             printf("\t%d: %s\n", tok->type, tok->lexeme);
 
         tok = tok->next;
+        index++;
     }
+#endif
+
+    struct parser_result presult = parser_parse(lexer->token_first, &ehandler);
+
+    print_errors(&ehandler);
+
+    struct parser_line* line = presult.front;
+
+    while (line) {
+        char* str = parser_line_to_string(line);
+        printf("%s\n", str);
+        free(str);
+
+        line = line->next;
+    }
+
+    parser_result_destroy(&presult);
 
 cleanup:
     lex_free(lexer);
