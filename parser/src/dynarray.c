@@ -1,6 +1,7 @@
 
 #include "dynarray.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,13 +17,16 @@ da_get_unsafe(struct dyn_array* da, size_t index)
 struct dyn_array*
 da_create(size_t cap, size_t byte_n)
 {
-    if (!cap || !byte_n)
+    if (!cap || !byte_n) {
+        assert(false /* Dyn array invalid values */);
         return NULL;
+    }
 
     struct dyn_array* da = malloc(sizeof *da);
 
-    if (!da)
+    if (!da) {
         return NULL;
+    }
 
     da->len = 0;
     da->cap = cap;
@@ -30,8 +34,12 @@ da_create(size_t cap, size_t byte_n)
 
     da->mem = malloc(da->cap * da->byte_n);
 
-    if (!da->mem)
+    if (!da->mem) {
+        da_free(da);
         return NULL;
+    }
+
+    return da;
 }
 
 void
@@ -52,6 +60,7 @@ da_reserve(struct dyn_array* da)
         int mult_factor =
             MULT_FACTOR * ((da->len / da->cap) + ((da->len % da->cap) != 0));
 
+        assert(mult_factor);
         da->cap *= mult_factor;
         da->mem = realloc(da->mem, da->cap * da->byte_n);
 

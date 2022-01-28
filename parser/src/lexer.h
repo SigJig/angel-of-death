@@ -24,10 +24,11 @@ typedef enum {
 
 // used by the validator
 typedef enum lex_e_valid {
-    LV_NOT = 0,      // invalid (cast from false)
-    LV_CONT,         // valid and can continue until v_done (cast from true)
-    LV_DONE,         // valid and done
-    LV_DONE_WHEN_NOT // done when the validator returns not
+    LV_NOT = 0,        // invalid (cast from false)
+    LV_CONT,           // valid and can continue until v_done (cast from true)
+    LV_DONE,           // valid and done
+    LV_DONE_WHEN_NOT,  // done when the validator returns not
+    LV_DONE_WHEN_DELIM // done when a delim is encountered (space)
 } lex_e_valid;
 
 struct lex_token {

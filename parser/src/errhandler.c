@@ -12,8 +12,8 @@ static struct err_message*
 ehandler_add(struct err_handler* handler, const char* err_type,
              const char* origin, const char* format, va_list args)
 {
-    struct err_message* msg =
-        *(struct err_message**)(da_reserve(handler->messages));
+    struct err_message* msg = malloc(sizeof *msg);
+    //*(struct err_message**)(da_reserve(handler->messages));
 
     struct sbuilder builder;
 
@@ -22,9 +22,19 @@ ehandler_add(struct err_handler* handler, const char* err_type,
 
     sbuilder_vwritef(&builder, format, args);
 
-    msg->type = err_type;
-    msg->origin = origin;
+    *(char**)&msg->type = (char*)err_type;
+    *(char**)&msg->origin = (char*)origin;
     msg->message = sbuilder_complete(&builder);
+
+    struct err_message** msgp =
+        (struct err_message**)da_reserve(handler->messages);
+
+    if (!msgp) {
+        emessage_destroy(msg);
+        return NULL;
+    }
+
+    *msgp = msg;
 
     return msg;
 }
@@ -57,7 +67,7 @@ ehandler_init(struct err_handler* handler)
 
     assert(CAP_INIT_SZ);
 
-    handler->messages = da_create(CAP_INIT_SZ, sizeof *handler->messages);
+    handler->messages = da_create(CAP_INIT_SZ, sizeof(struct err_message*));
 
     if (!handler->messages)
         return ST_INIT_FAIL;
