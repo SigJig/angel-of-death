@@ -1,6 +1,7 @@
 BasedOnStyle: LLVM
-IndentWidth: 8
-UseTab: Always
+IndentWidth: 4
+AlwaysBreakAfterReturnType: AllDefinitions
+PointerAlignment: Left
 BreakBeforeBraces: Linux
 AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: false
