@@ -16,6 +16,8 @@
 struct ged_builder {
     struct err_handler* ehandler;
 
+    uint8_t cur_level;
+
     // The stack contains pointers to record pointers
     // Thus, the records are not freed when calling free on the stack's
     // memory block
@@ -48,6 +50,7 @@ builder_init(struct ged_builder* ged, struct err_handler* ehandler)
     assert(DEFAULT_STACK_CAP);
 
     ged->ehandler = ehandler;
+    ged->cur_level = 0;
     ged->stack = da_create(DEFAULT_STACK_CAP, sizeof(struct ged_record*));
     ged->xrefs = ht_create(DEFAULT_XREFS_CAP);
 }
@@ -69,6 +72,7 @@ builder_destroy(struct ged_builder* ged)
 static e_statuscode
 builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
 {
+    ged->cur_level = rec->level;
     struct ged_record** mem = da_reserve(ged->stack);
     if (!mem)
         return ST_GEN_ERROR;
@@ -78,9 +82,39 @@ builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
     return ST_OK;
 }
 
+static e_statuscode
+builder_child_add(struct ged_builder* ged, struct ged_record* rec)
+{
+    struct ged_record** recp = da_back(ged->stack);
+
+    if (!(recp && *recp)) {
+        return ST_GEN_ERROR;
+    }
+
+    struct ged_record* last = (*recp)->children;
+
+    if (!last) {
+        (*recp)->children = rec;
+    } else {
+        while (last->next) {
+            last = last->next;
+        }
+
+        last->next = rec;
+    }
+
+    ged->cur_level++;
+
+    return ST_OK;
+}
+
 static struct ged_record*
 builder_stack_pop(struct ged_builder* ged)
 {
+    if (ged->cur_level) {
+        ged->cur_level--;
+    }
+
     return *(struct ged_record**)da_pop(ged->stack);
 }
 
@@ -127,28 +161,27 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     }
 
     if (line->line_value) {
-        // rec->value = malloc(sizeof *rec->value);
-        // TODO: Build value
-        assert(8 == sizeof(line->line_value->lexeme));
-        rec->value = da_create(10, sizeof(line->line_value->lexeme));
+        struct tag_interface* interface = tag_i_get(rec->tag);
 
-        struct lex_token* tok = line->line_value;
-
-        while (tok) {
-            char** mem = da_reserve(rec->value);
-
-            if (!mem) {
-                builder_errf(ged, "malloc errror");
-
-                goto error;
-            }
-
-            *mem = strdup(tok->lexeme);
-
-            tok = tok->next;
-        }
+        rec->value = (*interface->create)(interface, rec, line->line_value);
     } else {
         rec->value = NULL;
+    }
+
+    if (rec->level) {
+        if (rec->level > ged->cur_level) {
+            if (rec->level != ged->cur_level + 1) {
+                builder_errf(ged,
+                             "invalid line level (should be %d, %d, is %d)",
+                             ged->cur_level, ged->cur_level + 1, rec->level);
+
+                return ST_GEN_ERROR;
+            }
+
+            builder_child_add(ged, rec);
+        } else {
+            builder_stack_pop(ged);
+        }
     }
 
     if (builder_stack_add(ged, rec) != ST_OK) {
@@ -175,15 +208,7 @@ ged_record_free(struct ged_record* rec)
     }
 
     if (rec->value) {
-        for (size_t i = 0; i < rec->value->len; i++) {
-            char** mem = da_get(rec->value, i);
-
-            if (mem && *mem) {
-                free(*mem);
-            }
-        }
-
-        da_free(rec->value);
+        (*rec->value->interface->free)(rec->value);
     }
 
     for (uint8_t i = 0; i < rec->len_children; i++) {
@@ -191,12 +216,4 @@ ged_record_free(struct ged_record* rec)
     }
 
     free(rec);
-}
-
-const char*
-ged_record_value(struct ged_record* rec, size_t index)
-{
-    char** mem = da_get(rec->value, index);
-
-    return (mem && *mem) ? (const char*)*mem : NULL;
 }

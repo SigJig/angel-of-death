@@ -39,6 +39,8 @@ parser_init(struct parser* parser, struct err_handler* ehandler)
     parser_curline_reset(parser);
 
     parser->state.index = 0;
+
+    return ST_OK;
 }
 
 static void
@@ -135,8 +137,9 @@ parser_update_at(struct parser* parser, struct lex_token* token, int index)
         struct lex_token* back = cur_line->line_value;
 
         if (back) {
-            for (; back->next != NULL; back = back->next)
-                ;
+            for (; back->next != NULL; back = back->next) {
+            }
+
             back->next = token_copy;
         } else {
             cur_line->line_value = token_copy;
@@ -289,7 +292,7 @@ parser_parse(struct lex_token* tokens, struct err_handler* ehandler)
 
     struct parser parser;
 
-    if (!parser_init(&parser, ehandler)) {
+    if (parser_init(&parser, ehandler) != ST_OK) {
         parser_destroy(&parser);
 
         return empty;

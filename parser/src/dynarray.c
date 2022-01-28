@@ -80,6 +80,22 @@ da_get(struct dyn_array* da, size_t index)
     return da_get_unsafe(da, index);
 }
 
+void*
+da_front(struct dyn_array* da)
+{
+    return da_get(da, 0);
+}
+
+void*
+da_back(struct dyn_array* da)
+{
+    if (!da->len) {
+        return NULL;
+    }
+
+    return da_get(da, da->len - 1);
+}
+
 // since reserve returns unitialized data, it is expected to initialize after
 // reserve has been called therefore we dont need to clear the memory, as it
 // will either be freed upon destruction or updated when the slot is reused

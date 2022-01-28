@@ -5,9 +5,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define FNV1A_PRIME 0x01000193
-#define FNV1A_OFFSET 0x811c9dc5
-
 struct ht_entry {
     char* key;
     void* value;

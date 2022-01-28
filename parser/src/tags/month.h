@@ -3,44 +3,46 @@
 #include <assert.h>
 #include <string.h>
 
-const char *MONTH_ENG = "MONTH";
-const char *MONTH_FREN = "MONTH_FREN";
-const char *MONTH_HEBR = "MONTH_HEBR";
+const char* MONTH_ENG = "MONTH";
+const char* MONTH_FREN = "MONTH_FREN";
+const char* MONTH_HEBR = "MONTH_HEBR";
 
 struct month {
-    char *name;
-    char *value;
+    struct tag_interface* interface;
+    char* name;
+    char* value;
 };
 
-static struct month *
-month_base_create(const char **possible_months, const char *name,
-                  struct ged_record *rec)
+static struct month*
+month_base_create(const char** possible_months, const char* name,
+                  struct tag_interface* interface, struct ged_record* rec,
+                  struct lex_token* tok)
 {
-    if (rec->value->len != 1) {
-        // TODO: err
+    if (tok->next) {
+        // TODO: Error
 
         return NULL;
     }
 
-    const char *entry = ged_record_value(rec, 0);
-
-    if (!entry) {
+    if (!tok->lexeme) {
         // TODO: ERr
 
         return NULL;
     }
 
+    const char* entry = tok->lexeme;
+
     size_t size = sizeof possible_months / sizeof *possible_months;
-    assert(size == 12);
 
     for (size_t i = 0; i < size; i++) {
         if (strcmp(possible_months[i], entry) == 0) {
-            struct month *m = malloc(sizeof *m);
+            struct month* m = malloc(sizeof *m);
 
             if (!m) {
                 return NULL;
             }
 
+            m->interface = interface;
             m->name = strdup(name);
             m->value = strdup(entry);
         }
@@ -52,39 +54,44 @@ month_base_create(const char **possible_months, const char *name,
 }
 
 static void
-month_base_free(struct month *m)
+month_base_free(struct month* m)
 {
-    free(m->name);
-    free(m->value);
-    free(m);
+    if (m) {
+        free(m->name);
+        free(m->value);
+        free(m);
+    }
 }
 
-static struct month *
-month_create(struct tag_interface interface, struct ged_record *rec)
+static struct month*
+month_create(struct tag_interface* interface, struct ged_record* rec,
+             struct lex_token* toks)
 {
-    const char *months[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+    const char* months[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
                             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
-    return month_base_create(months, MONTH_ENG, rec);
+    return month_base_create(months, MONTH_ENG, interface, rec, toks);
 }
 
-static struct month *
-month_fren_create(struct tag_interface interface, struct ged_record *rec)
+static struct month*
+month_fren_create(struct tag_interface* interface, struct ged_record* rec,
+                  struct lex_token* toks)
 {
-    const char *months[] = {"VEND", "BRUM", "FRIM", "NIVO", "PLUV",
+    const char* months[] = {"VEND", "BRUM", "FRIM", "NIVO", "PLUV",
                             "VENT", "GERM", "FLOR", "PRAI", "MESS",
                             "THER", "FRUC", "COMP"};
 
-    return month_base_create(months, MONTH_FREN, rec);
+    return month_base_create(months, MONTH_FREN, interface, rec, toks);
 }
 
-static struct month *
-month_hebr_create(struct tag_interface interface, struct ged_record *rec)
+static struct month*
+month_hebr_create(struct tag_interface* interface, struct ged_record* rec,
+                  struct lex_token* toks)
 {
-    const char *months[] = {"TSH", "CSH", "KSL", "TVT", "SHV", "ADR", "ADS",
+    const char* months[] = {"TSH", "CSH", "KSL", "TVT", "SHV", "ADR", "ADS",
                             "NSN", "IYR", "SVN", "TMZ", "AAV", "ELL"};
 
-    return month_base_create(months, MONTH_HEBR, rec);
+    return month_base_create(months, MONTH_HEBR, interface, rec, toks);
 }
 
 static struct tag_interface tag_i_month_eng = {
@@ -97,7 +104,7 @@ static struct tag_interface tag_i_month_hebr = {
     .create = (fn_create)month_hebr_create, .free = (fn_free)month_base_free};
 
 void
-init_months(struct hash_table *ht)
+init_months(struct hash_table* ht)
 {
     ht_set(ht, MONTH_ENG, &tag_i_month_eng);
     ht_set(ht, MONTH_FREN, &tag_i_month_fren);
