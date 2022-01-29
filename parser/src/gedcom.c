@@ -175,7 +175,7 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
                              "invalid line level (should be %d, %d, is %d)",
                              ged->cur_level, ged->cur_level + 1, rec->level);
 
-                return ST_GEN_ERROR;
+                return NULL;
             }
 
             builder_child_add(ged, rec);

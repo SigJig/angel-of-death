@@ -2,6 +2,7 @@
 #include "hashmap.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <string.h>
 
 // 32bit
@@ -39,6 +40,7 @@ bucket_free(struct ht_bucket* bucket)
         tmp = entry;
         entry = entry->next;
 
+        free(tmp->key);
         free(tmp);
     }
 
@@ -56,8 +58,9 @@ ht_create(size_t cap)
         return NULL;
 
     ht->cap = cap;
+    ht->buckets = calloc(cap, sizeof *ht->buckets);
 
-    if (!(ht->buckets = calloc(cap, sizeof *ht->buckets))) {
+    if (!ht->buckets) {
         free(ht);
 
         return NULL;
@@ -72,8 +75,9 @@ ht_free(struct hash_table* ht)
     for (size_t i = 0; i < ht->cap; i++) {
         struct ht_bucket* bucket = ht->buckets[i];
 
-        if (bucket)
+        if (bucket) {
             bucket_free(bucket);
+        }
     }
 
     free(ht->buckets);
@@ -115,8 +119,16 @@ ht_set(struct hash_table* ht, const char* key, void* value)
     size_t index = get_index(ht, key);
     struct ht_bucket* bucket = ht->buckets[index];
 
-    if (!bucket && !(bucket = malloc(sizeof *bucket))) {
-        return;
+    if (!bucket) {
+        bucket = malloc(sizeof *bucket);
+
+        if (!bucket) {
+            assert(false /* Bucket initialization failed */);
+            return;
+        }
+
+        bucket->front = NULL;
+        ht->buckets[index] = bucket;
     }
 
     struct ht_entry* entry = bucket->front;
@@ -133,14 +145,16 @@ ht_set(struct hash_table* ht, const char* key, void* value)
         entry = entry->next;
     }
 
-    if (!(entry = malloc((sizeof *entry) + (keylen + 1)))) {
+    entry = malloc(sizeof *entry);
+
+    if (!entry) {
+        assert(false /* Entry initialization failed */);
         return;
     }
 
-    // key does not exist, add new entry to bucket linked list
-    strncpy(bucket->front->key, key, keylen + 1);
-    bucket->front->value = value;
-    bucket->front->next = NULL;
+    entry->key = strdup(key);
+    entry->value = value;
+    entry->next = NULL;
 
     if (prev) {
         prev->next = entry;

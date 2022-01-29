@@ -56,16 +56,24 @@ month_base_create(const char** possible_months, const char* name,
 static void
 month_base_free(struct month* m)
 {
-    if (m) {
-        free(m->name);
-        free(m->value);
-        free(m);
+    if (!m) {
+        return;
     }
+
+    if (m->name) {
+        free(m->name);
+    }
+
+    if (m->value) {
+        free(m->value);
+    }
+
+    free(m);
 }
 
 static struct month*
-month_create(struct tag_interface* interface, struct ged_record* rec,
-             struct lex_token* toks)
+month_eng_create(struct tag_interface* interface, struct ged_record* rec,
+                 struct lex_token* toks)
 {
     const char* months[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
                             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
@@ -95,7 +103,7 @@ month_hebr_create(struct tag_interface* interface, struct ged_record* rec,
 }
 
 static struct tag_interface tag_i_month_eng = {
-    .create = (fn_create)month_create, .free = (fn_free)month_base_free};
+    .create = (fn_create)month_eng_create, .free = (fn_free)month_base_free};
 
 static struct tag_interface tag_i_month_fren = {
     .create = (fn_create)month_fren_create, .free = (fn_free)month_base_free};

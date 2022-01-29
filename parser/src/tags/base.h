@@ -25,7 +25,7 @@ struct tag_interface {
 
 void tag_base_free(struct tag_base* tag);
 
-const struct tag_interface* tag_i_get(const char* key);
+struct tag_interface* tag_i_get(const char* key);
 
 void tags_init();
 void tags_cleanup();

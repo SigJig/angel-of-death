@@ -7,9 +7,9 @@
 #include "tags/month.h"
 
 // Hashtable of tag interfaces
-static struct hash_table *tags_ht = NULL;
+static struct hash_table* tags_ht = NULL;
 
-static struct hash_table *
+static struct hash_table*
 tags_ht_instance()
 {
     if (!tags_ht) {
@@ -20,9 +20,8 @@ tags_ht_instance()
 }
 
 void
-tag_base_free(struct tag_base *tag)
+tag_base_free(struct tag_base* tag)
 {
-    free(tag->name);
     free(tag);
 }
 
@@ -46,7 +45,7 @@ tags_init()
     global space would then be unnecessary memory usage throughout the
     runtime of the program.
     */
-    const void (*init_modules[])(struct hash_table *) = {
+    void (*init_modules[])(struct hash_table*) = {
         init_months,
     };
 
@@ -70,8 +69,8 @@ tags_cleanup()
     tags_ht = NULL;
 }
 
-const struct tag_interface *
-tag_i_get(const char *key)
+struct tag_interface*
+tag_i_get(const char* key)
 {
     return ht_get(tags_ht_instance(), key);
 }

@@ -1,10 +1,22 @@
 
 #include "dynarray.h"
 #include "errhandler.h"
+#include "hashmap.h"
 #include "lexer.h"
 #include "parser.h"
 #include <assert.h>
 #include <stdio.h>
+
+void
+test_hashtable()
+{
+    struct hash_table* ht = ht_create(31);
+
+    ht_set(ht, "testcase", (void*)(uintptr_t)4);
+    printf("Hashtable test: %d\n", (int)(uintptr_t)ht_get(ht, "testcase"));
+
+    ht_free(ht);
+}
 
 size_t
 print_errors(struct err_handler* ehandler)
@@ -63,9 +75,11 @@ from_example(const char* path)
     struct parser_line* line = presult.front;
 
     while (line) {
+#if 0
         char* str = parser_line_to_string(line);
         printf("%s\n", str);
         free(str);
+#endif
 
         line = line->next;
     }
@@ -82,6 +96,7 @@ cleanup:
 int
 main(int argc, char** argv)
 {
+    test_hashtable();
 
     from_example("/home/sig/Documents/development/projects/angel-of-death/"
                  "parser/example.ged");
