@@ -91,6 +91,10 @@ log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
         return ST_NOT_OK;
     }
 
+    if (level == CRITICAL) {
+        ctx->can_continue = false;
+    }
+
     struct ctx_state* state = ctx_state(ctx);
 
     if (!state) {
@@ -211,6 +215,7 @@ ctx_create(ctx_e_loglevel log_level)
         return NULL;
     }
 
+    ctx->can_continue = true;
     ctx->log_level = log_level;
     ctx->stack = da_create(100, sizeof(struct ctx_state*));
     ctx->log = da_create(10, sizeof(struct ctx_log_message*));
@@ -250,6 +255,12 @@ ctx_free(struct context* ctx)
     }
 
     free(ctx);
+}
+
+bool
+ctx_continue(struct context* ctx)
+{
+    return ctx->can_continue;
 }
 
 e_statuscode

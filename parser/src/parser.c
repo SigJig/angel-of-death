@@ -1,7 +1,105 @@
 
 #include "parser.h"
 #include "stringbuilder.h"
+#include <assert.h>
 #include <stdarg.h>
+
+struct pctx_state {
+    CTX_STATE_INTERFACE;
+
+    size_t line;
+    size_t col;
+};
+
+static void pctx_fn_free(struct pctx_state* state);
+static char* pctx_fn_to_string(struct pctx_state* state);
+static struct ctx_state* pctx_fn_copy(struct pctx_state* state);
+
+static struct ctx_state*
+pctx_create()
+{
+    struct pctx_state* state = malloc(sizeof *state);
+
+    state->free = (fn_state_free)pctx_fn_free;
+    state->to_string = (fn_state_to_string)pctx_fn_to_string;
+    state->copy = (fn_state_copy)pctx_fn_copy;
+    state->line = 0;
+    state->col = 0;
+
+    return (struct ctx_state*)state;
+}
+
+static struct pctx_state*
+state_from_ctx(struct context* ctx)
+{
+    struct pctx_state* state = (struct pctx_state*)ctx_state(ctx);
+
+    if (!state) {
+        assert(false);
+
+        return NULL;
+    }
+
+    return state;
+}
+
+static void
+pctx_update_line(struct context* ctx, size_t line)
+{
+    struct pctx_state* state = state_from_ctx(ctx);
+
+    if (!state) {
+        return;
+    }
+
+    state->line = line;
+}
+
+static void
+pctx_update_col(struct context* ctx, size_t col)
+{
+    struct pctx_state* state = state_from_ctx(ctx);
+
+    if (!state) {
+        return;
+    }
+
+    state->col = col;
+}
+
+static void
+pctx_fn_free(struct pctx_state* state)
+{
+    free(state);
+}
+
+static char*
+pctx_fn_to_string(struct pctx_state* state)
+{
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, 50) != ST_OK) {
+        assert(false);
+
+        return NULL;
+    }
+
+    sbuilder_writef(&builder, "parser (line: %zu, column: %zu)", state->line,
+                    state->col);
+
+    return sbuilder_complete(&builder);
+}
+
+static struct ctx_state*
+pctx_fn_copy(struct pctx_state* state)
+{
+    struct pctx_state* copy = (struct pctx_state*)pctx_create();
+
+    copy->line = state->line;
+    copy->col = state->col;
+
+    return (struct ctx_state*)copy;
+}
 
 static struct parser_line*
 parser_curline_reset(struct parser* parser)
@@ -22,19 +120,15 @@ parser_curline_reset(struct parser* parser)
 }
 
 static e_statuscode
-parser_init(struct parser* parser, struct err_handler* ehandler)
+parser_init(struct parser* parser, struct context* ctx)
 {
-    if (!parser || !ehandler)
+    if (!parser || !ctx)
         return ST_INIT_FAIL;
 
     parser->stack_idx = 0;
     parser->result.front = NULL;
     parser->result.back = NULL;
-    parser->ehandler = ehandler;
-
-    if (!ehandler) {
-        return ST_INIT_FAIL;
-    }
+    parser->ctx = ctx;
 
     parser_curline_reset(parser);
 
@@ -53,29 +147,7 @@ parser_destroy(struct parser* parser)
         parser_line_free(parser->state.cur_line);
     }
 
-    parser->ehandler = NULL;
-}
-
-static struct err_message*
-parser_errf_from(struct parser* parser, const char* format, ...)
-{
-    va_list args;
-    va_start(args, format);
-
-    struct err_message* result =
-        ehandler_verrf(parser->ehandler, "parser", format, args);
-
-    va_end(args);
-
-    return result;
-}
-
-static struct err_message*
-parser_err_unexpected(struct parser* parser, struct lex_token* token)
-{
-    return parser_errf_from(parser,
-                            "unexpected token type (line: %zu, col: %zu) :%d",
-                            token->line, token->col, token->type);
+    parser->ctx = NULL;
 }
 
 static bool
@@ -246,13 +318,25 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
         return ST_NOT_OK;
     }
 
+    // yes i know i can use !index u cunt
+    if (index == 0) {
+        pctx_update_line(parser->ctx, token->line);
+    }
+
+    pctx_update_col(parser->ctx, token->col);
+
     if (index < 6 && index & 1) {
         if (token->type == LT_DELIM) {
             return ST_NOT_OK;
         } else if (!(index == 5 && token->type == LT_TERMINATOR)) {
             // If index 5 is not a delimeter, it must be a terminator.
 
-            parser_err_unexpected(parser, token);
+            ctx_critf(
+                parser->ctx,
+                "optional value must start with a delimeter, or be omitted "
+                "completely with a terminator (expected type (%d, %d), got %d)",
+                (int)LT_DELIM, (int)LT_TERMINATOR, (int)token->type);
+
             return ST_GEN_ERROR;
         }
     }
@@ -264,7 +348,7 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 
     if (!parser_valid_at_idx(parser, token, index)) {
         if (index != 2) {
-            parser_err_unexpected(parser, token);
+            ctx_critf(parser->ctx, "unexpected type %d", (int)token->type);
             return ST_GEN_ERROR;
         }
 
@@ -282,8 +366,9 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 }
 
 struct parser_result
-parser_parse(struct lex_token* tokens, struct err_handler* ehandler)
+parser_parse(struct lex_token* tokens, struct context* ctx)
 {
+    ctx_push(ctx, pctx_create());
     struct parser_result empty = {.front = NULL, .back = NULL};
 
     if (!tokens)
@@ -291,7 +376,7 @@ parser_parse(struct lex_token* tokens, struct err_handler* ehandler)
 
     struct parser parser;
 
-    if (parser_init(&parser, ehandler) != ST_OK) {
+    if (parser_init(&parser, ctx) != ST_OK) {
         parser_destroy(&parser);
 
         return empty;
@@ -302,6 +387,7 @@ parser_parse(struct lex_token* tokens, struct err_handler* ehandler)
     }
 
     parser_destroy(&parser);
+    ctx_pop(ctx);
 
     return parser.result;
 }

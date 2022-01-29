@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-#include "errhandler.h"
+#include "context.h"
 #include "lexer.h"
 #include "statuscode.h"
 
@@ -34,7 +34,7 @@ struct parser {
         struct parser_line* cur_line;
     } state;
 
-    struct err_handler* ehandler;
+    struct context* ctx;
     struct parser_result result;
 };
 
@@ -45,6 +45,6 @@ void parser_result_destroy(struct parser_result* result);
 
 e_statuscode parser_parse_token(struct parser* parser, struct lex_token* token);
 struct parser_result parser_parse(struct lex_token* tokens,
-                                  struct err_handler* ehandler);
+                                  struct context* ctx);
 
 #endif // PARSER_H

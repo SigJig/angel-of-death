@@ -3,7 +3,6 @@
 #define CONTEXT_H
 
 #include "dynarray.h"
-#include "errhandler.h"
 #include "statuscode.h"
 #include <stdarg.h>
 #include <stdbool.h>
@@ -28,10 +27,11 @@ struct ctx_state {
 struct ctx_log_message {
     char* message;
     ctx_e_loglevel level;
-    struct dyn_array* stack;
+    struct dyn_array* stack; // copy of the current context stack
 };
 
 struct context {
+    bool can_continue;
     ctx_e_loglevel log_level;
     struct dyn_array* stack; // array of ctx_state
     struct dyn_array* log;   // array of ctx_log_message
@@ -41,6 +41,8 @@ struct context* ctx_create(ctx_e_loglevel log_level);
 void ctx_free(struct context* ctx);
 
 // Whether critical errors that should stop parsing have been encountered.
+// For example, if critical error is encountered in lexing, it will not continue
+// to parsing
 bool ctx_continue(struct context* ctx);
 
 e_statuscode ctx_push(struct context* ctx, struct ctx_state* state);

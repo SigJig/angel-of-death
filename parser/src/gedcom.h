@@ -3,7 +3,6 @@
 #define GEDCOM_H
 
 #include "dynarray.h"
-#include "errhandler.h"
 #include "lexer.h"
 #include "parser.h"
 #include "stringbuilder.h"

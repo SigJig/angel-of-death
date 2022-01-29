@@ -1,7 +1,6 @@
 
 #include "context.h"
 #include "dynarray.h"
-#include "errhandler.h"
 #include "hashmap.h"
 #include "lexer.h"
 #include "parser.h"
@@ -51,8 +50,8 @@ from_example(const char* path)
     }
     lex_feed(lexer, EOF);
 
-    if (print_errors(ctx)) {
-        // goto cleanup;
+    if (print_errors(ctx) && !ctx_continue(ctx)) {
+        goto cleanup;
     }
 
     printf("LEXER DONE: \n");
@@ -69,10 +68,10 @@ from_example(const char* path)
     }
 #endif
 
-#if 0
-    struct parser_result presult = parser_parse(lexer->token_first, &ehandler);
+#if 1
+    struct parser_result presult = parser_parse(lexer->token_first, ctx);
 
-    print_errors(&ehandler);
+    print_errors(ctx);
 
     struct parser_line* line = presult.front;
 

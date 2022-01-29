@@ -2,21 +2,23 @@
 #ifndef TAGS_BASE_H
 #define TAGS_BASE_H
 
-#include "errhandler.h"
+#include "context.h"
 #include "gedcom.h"
 #include "hashmap.h"
+
+#define TAG_BASE                                                               \
+    struct tag_interface* interface;                                           \
+    struct context* ctx
 
 struct ged_record; // defined in gedcom.h
 
 struct tag_interface;
-
 struct tag_base {
-    struct tag_interface* interface;
-    struct err_handler* ehandler;
+    TAG_BASE;
 };
 
 typedef struct tag_base* (*fn_create)(struct tag_interface*, struct ged_record*,
-                                      struct lex_token*, struct err_handler*);
+                                      struct lex_token*, struct context* ctx);
 
 typedef void (*fn_free)(struct tag_base*);
 

@@ -23,36 +23,18 @@ struct ged_builder {
     // memory block
     struct dyn_array* stack;
     struct hash_table* xrefs;
+    struct context* ctx;
 };
 
-static struct err_message*
-builder_verrf(struct ged_builder* ged, const char* format, va_list args)
-{
-    return ehandler_verrf(ged->ehandler, "builder", format, args);
-}
-
-static struct err_message*
-builder_errf(struct ged_builder* ged, const char* format, ...)
-{
-    va_list args;
-    va_start(args, format);
-
-    struct err_message* result = builder_verrf(ged, format, args);
-
-    va_end(args);
-
-    return result;
-}
-
 static e_statuscode
-builder_init(struct ged_builder* ged, struct err_handler* ehandler)
+builder_init(struct ged_builder* ged, struct context* ctx)
 {
     assert(DEFAULT_STACK_CAP);
 
-    ged->ehandler = ehandler;
     ged->cur_level = 0;
     ged->stack = da_create(DEFAULT_STACK_CAP, sizeof(struct ged_record*));
     ged->xrefs = ht_create(DEFAULT_XREFS_CAP);
+    ged->ctx = ctx;
 }
 
 static void
@@ -67,6 +49,7 @@ builder_destroy(struct ged_builder* ged)
 
     da_free(ged->stack);
     ht_free(ged->xrefs);
+    ged->ctx = NULL;
 }
 
 static e_statuscode
@@ -129,13 +112,13 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     if (strlen(level) > 1 && level[0] == '0') {
         // the gedcom standard does not allow leading 0s on levels
         // TODO: this should be warning
-        builder_errf(ged,
-                     "gedcom standard disallows leading 0 on level "
-                     "declarations (%s)",
-                     level);
+        ctx_warnf(ged->ctx,
+                  "gedcom standard disallows leading 0 on level "
+                  "declarations (%s)",
+                  level);
 
     } else if (level_parsed == 0) {
-        builder_errf(ged, "unable to parse %s as level", level);
+        ctx_critf(ged->ctx, "unable to parse %s as level", level);
         goto error;
     }
 
@@ -146,7 +129,7 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
 
         // add to symbol table
         if (ht_get(ged->xrefs, rec->xref) != NULL) {
-            builder_errf(ged, "xref %s already defined", rec->xref);
+            ctx_critf(ged->ctx, "xref %s already defined", rec->xref);
         } else {
             ht_set(ged->xrefs, rec->xref, rec);
         }
@@ -163,8 +146,8 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     if (line->line_value) {
         struct tag_interface* interface = tag_i_get(rec->tag);
 
-        rec->value = (*interface->create)(interface, rec, line->line_value,
-                                          ged->ehandler);
+        rec->value =
+            (*interface->create)(interface, rec, line->line_value, ged->ctx);
     } else {
         rec->value = NULL;
     }
@@ -172,9 +155,9 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     if (rec->level) {
         if (rec->level > ged->cur_level) {
             if (rec->level != ged->cur_level + 1) {
-                builder_errf(ged,
-                             "invalid line level (should be %d, %d, is %d)",
-                             ged->cur_level, ged->cur_level + 1, rec->level);
+                ctx_critf(ged->ctx,
+                          "invalid line level (should be %d, %d, is %d)",
+                          ged->cur_level, ged->cur_level + 1, rec->level);
 
                 return NULL;
             }

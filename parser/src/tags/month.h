@@ -8,8 +8,7 @@ const char* MONTH_FREN = "MONTH_FREN";
 const char* MONTH_HEBR = "MONTH_HEBR";
 
 struct month {
-    struct tag_interface* interface;
-    struct err_handler* ehandler;
+    TAG_BASE;
     char* name;
     char* value;
 };
@@ -17,7 +16,7 @@ struct month {
 static struct month*
 month_base_create(const char** possible_months, const char* name,
                   struct tag_interface* interface, struct ged_record* rec,
-                  struct lex_token* tok, struct err_handler* ehandler)
+                  struct lex_token* tok, struct context* ctx)
 {
     if (tok->next) {
         int count = 0;
@@ -27,14 +26,13 @@ month_base_create(const char** possible_months, const char* name,
             tok = tok->next;
         }
 
-        ehandler_errf(ehandler, "%s expects exactly one argument (got %d)",
-                      name, count);
+        ctx_critf(ctx, "%s expects exactly one argument (got %d)", name, count);
 
         return NULL;
     }
 
     if (!tok->lexeme) {
-        ehandler_errf(ehandler, "%s empty argument", name);
+        ctx_critf(ctx, "%s empty argument", name);
 
         return NULL;
     }
@@ -54,11 +52,11 @@ month_base_create(const char** possible_months, const char* name,
             m->interface = interface;
             m->name = strdup(name);
             m->value = strdup(entry);
-            m->ehandler = ehandler;
+            m->ctx = ctx;
         }
     }
 
-    ehandler_errf(ehandler, "%s got invalid month %s", name, entry);
+    ctx_errf(ctx, "%s got invalid month %s", name, entry);
 
     return NULL;
 }
@@ -83,35 +81,33 @@ month_base_free(struct month* m)
 
 static struct month*
 month_eng_create(struct tag_interface* interface, struct ged_record* rec,
-                 struct lex_token* toks, struct err_handler* ehandler)
+                 struct lex_token* toks, struct context* ctx)
 {
     const char* months[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
                             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
-    return month_base_create(months, MONTH_ENG, interface, rec, toks, ehandler);
+    return month_base_create(months, MONTH_ENG, interface, rec, toks, ctx);
 }
 
 static struct month*
 month_fren_create(struct tag_interface* interface, struct ged_record* rec,
-                  struct lex_token* toks, struct err_handler* ehandler)
+                  struct lex_token* toks, struct context* ctx)
 {
     const char* months[] = {"VEND", "BRUM", "FRIM", "NIVO", "PLUV",
                             "VENT", "GERM", "FLOR", "PRAI", "MESS",
                             "THER", "FRUC", "COMP"};
 
-    return month_base_create(months, MONTH_FREN, interface, rec, toks,
-                             ehandler);
+    return month_base_create(months, MONTH_FREN, interface, rec, toks, ctx);
 }
 
 static struct month*
 month_hebr_create(struct tag_interface* interface, struct ged_record* rec,
-                  struct lex_token* toks, struct err_handler* ehandler)
+                  struct lex_token* toks, struct context* ctx)
 {
     const char* months[] = {"TSH", "CSH", "KSL", "TVT", "SHV", "ADR", "ADS",
                             "NSN", "IYR", "SVN", "TMZ", "AAV", "ELL"};
 
-    return month_base_create(months, MONTH_HEBR, interface, rec, toks,
-                             ehandler);
+    return month_base_create(months, MONTH_HEBR, interface, rec, toks, ctx);
 }
 
 static struct tag_interface tag_i_month_eng = {
