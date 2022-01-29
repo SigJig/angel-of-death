@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "context.h"
 #include "errhandler.h"
 #include "statuscode.h"
 #include "stringbuilder.h"
