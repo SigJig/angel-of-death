@@ -251,7 +251,6 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
             return ST_NOT_OK;
         } else if (!(index == 5 && token->type == LT_TERMINATOR)) {
             // If index 5 is not a delimeter, it must be a terminator.
-            // Index 5
 
             parser_err_unexpected(parser, token);
             return ST_GEN_ERROR;

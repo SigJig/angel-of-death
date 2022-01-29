@@ -163,7 +163,8 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     if (line->line_value) {
         struct tag_interface* interface = tag_i_get(rec->tag);
 
-        rec->value = (*interface->create)(interface, rec, line->line_value);
+        rec->value = (*interface->create)(interface, rec, line->line_value,
+                                          ged->ehandler);
     } else {
         rec->value = NULL;
     }

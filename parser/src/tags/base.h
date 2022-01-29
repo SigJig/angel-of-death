@@ -2,6 +2,7 @@
 #ifndef TAGS_BASE_H
 #define TAGS_BASE_H
 
+#include "errhandler.h"
 #include "gedcom.h"
 #include "hashmap.h"
 
@@ -11,10 +12,11 @@ struct tag_interface;
 
 struct tag_base {
     struct tag_interface* interface;
+    struct err_handler* ehandler;
 };
 
 typedef struct tag_base* (*fn_create)(struct tag_interface*, struct ged_record*,
-                                      struct lex_token*);
+                                      struct lex_token*, struct err_handler*);
 
 typedef void (*fn_free)(struct tag_base*);
 
