@@ -1,4 +1,5 @@
 
+#include "context.h"
 #include "dynarray.h"
 #include "errhandler.h"
 #include "hashmap.h"
@@ -19,18 +20,19 @@ test_hashtable()
 }
 
 size_t
-print_errors(struct err_handler* ehandler)
+print_errors(struct context* ctx)
 {
-    size_t length = ehandler_len(ehandler);
+    char* str = ctx_log_to_string(ctx);
 
-    for (size_t i = 0; i < (length > 10 ? 10 : length); i++) {
-        char* msg = emessage_to_string(ehandler_get(ehandler, i));
-
-        printf("%s\n", msg);
-        free(msg);
+    if (!str) {
+        return 0;
     }
 
-    return length;
+    printf("%s", str);
+
+    free(str);
+
+    return 1;
 }
 
 void
@@ -39,10 +41,9 @@ from_example(const char* path)
     FILE* fp = fopen(path, "r");
     assert(fp);
 
-    struct err_handler ehandler;
-    assert(ehandler_init(&ehandler) == ST_OK);
+    struct context* ctx = ctx_create(DEBUG);
 
-    struct lex_lexer* lexer = lex_create(&ehandler);
+    struct lex_lexer* lexer = lex_create(ctx);
     assert(lexer);
 
     for (int c = fgetc(fp); c != EOF; c = fgetc(fp)) {
@@ -50,8 +51,8 @@ from_example(const char* path)
     }
     lex_feed(lexer, EOF);
 
-    if (print_errors(&ehandler)) {
-        goto cleanup;
+    if (print_errors(ctx)) {
+        // goto cleanup;
     }
 
     printf("LEXER DONE: \n");
@@ -68,6 +69,7 @@ from_example(const char* path)
     }
 #endif
 
+#if 0
     struct parser_result presult = parser_parse(lexer->token_first, &ehandler);
 
     print_errors(&ehandler);
@@ -85,10 +87,11 @@ from_example(const char* path)
     }
 
     parser_result_destroy(&presult);
-
+#endif
 cleanup:
     lex_free(lexer);
-    ehandler_destroy(&ehandler);
+    // ehandler_destroy(&ehandler);
+    ctx_free(ctx);
 
     fclose(fp);
 }

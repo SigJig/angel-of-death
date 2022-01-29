@@ -78,24 +78,86 @@ is_line_feed(char c)
     return c == '\n';
 }
 
-static struct err_message*
-lex_errf(struct lex_lexer* lexer, const char* format, ...)
+struct lctx_state {
+    CTX_STATE_INTERFACE;
+
+    size_t line;
+    size_t col;
+};
+
+static void lctx_fn_free(struct lctx_state* state);
+static char* lctx_fn_to_string(struct lctx_state* state);
+static struct ctx_state* lctx_fn_copy(struct lctx_state* state);
+
+static struct ctx_state*
+lctx_create()
 {
-    va_list args;
-    va_start(args, format);
+    struct lctx_state* state = malloc(sizeof *state);
 
-    struct err_message* result =
-        ehandler_verrf(lexer->ehandler, "lexer", format, args);
-    va_end(args);
+    if (!state) {
+        return NULL;
+    }
 
-    return result;
+    state->free = (fn_state_free)lctx_fn_free;
+    state->to_string = (fn_state_to_string)lctx_fn_to_string;
+    state->copy = (fn_state_copy)lctx_fn_copy;
+    state->line = 0;
+    state->col = 0;
+
+    return (struct ctx_state*)state;
 }
 
-static struct err_message*
-lex_err_unexpected(struct lex_lexer* lexer, char c)
+static void
+lctx_update_pos(struct context* ctx, size_t line, size_t col)
 {
-    return lex_errf(lexer, "unexpected character (line: %zu, col: %zu): %c",
-                    lexer->line, lexer->col, c);
+    struct lctx_state* state = (struct lctx_state*)ctx_state(ctx);
+
+    if (!state) {
+        assert(false);
+
+        return;
+    }
+
+    state->line = line;
+    state->col = col;
+}
+
+static void
+lctx_fn_free(struct lctx_state* state)
+{
+    free(state);
+}
+
+static char*
+lctx_fn_to_string(struct lctx_state* state)
+{
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, 50) != ST_OK) {
+        assert(false);
+
+        return NULL;
+    }
+
+    sbuilder_writef(&builder, "lexer (line: %zu, column: %zu)", state->line,
+                    state->col);
+
+    return sbuilder_complete(&builder);
+}
+
+static struct ctx_state*
+lctx_fn_copy(struct lctx_state* state)
+{
+    struct lctx_state* copy = (struct lctx_state*)lctx_create();
+
+    if (!copy) {
+        return NULL;
+    }
+
+    copy->line = state->line;
+    copy->col = state->col;
+
+    return (struct ctx_state*)copy;
 }
 
 static struct lex_token*
@@ -116,8 +178,8 @@ lex_add_token(struct lex_lexer* lexer, lex_token_type type, char* lexeme)
 
     newtok->type = type;
     newtok->lexeme = lexeme;
-    newtok->line = lexer->line;
-    newtok->col = lexer->col;
+    newtok->line = lexer->tokline;
+    newtok->col = lexer->tokcol;
     newtok->next = NULL;
 
     return newtok;
@@ -319,8 +381,18 @@ lex_advance(struct lex_lexer* lexer)
     }
 
     if (!lexer->state.possible_length) {
-        lex_err_unexpected(lexer, c);
-        return ST_GEN_ERROR;
+        ctx_critf(
+            lexer->ctx,
+            "unexpected character '%c' encountered (at line %zu, column %zu)",
+            c, lexer->curline, lexer->curcol);
+
+        sbuilder_write_char(&lexer->state.builder, c);
+
+        lex_add_token(lexer, LT_INVALID,
+                      sbuilder_return(&lexer->state.builder));
+        lex_reset_state(lexer);
+
+        return ST_OK;
     }
 
     sbuilder_write_char(&lexer->state.builder, c);
@@ -368,11 +440,11 @@ lex_token_free(struct lex_token* token)
 }
 
 struct lex_lexer*
-lex_create(struct err_handler* ehandler)
+lex_create(struct context* ctx)
 {
     struct lex_lexer* lexer = malloc(sizeof *lexer);
 
-    if (lex_init(lexer, ehandler) != ST_OK) {
+    if (lex_init(lexer, ctx) != ST_OK) {
         free(lexer);
 
         return NULL;
@@ -382,7 +454,7 @@ lex_create(struct err_handler* ehandler)
 }
 
 e_statuscode
-lex_init(struct lex_lexer* lexer, struct err_handler* ehandler)
+lex_init(struct lex_lexer* lexer, struct context* ctx)
 {
     if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0) {
         return ST_INIT_FAIL;
@@ -392,16 +464,20 @@ lex_init(struct lex_lexer* lexer, struct err_handler* ehandler)
         return ST_INIT_FAIL;
     }
 
-    if (!ehandler) {
+    if (!ctx) {
         return ST_INIT_FAIL;
     }
 
-    lexer->ehandler = ehandler;
+    ctx_push(ctx, lctx_create());
+
+    lexer->ctx = ctx;
     lexer->eof_reached = false;
     lexer->current = '\0';
     lexer->lookahead = '\0';
-    lexer->line = 1;
-    lexer->col = 1;
+    lexer->tokline = 1;
+    lexer->tokcol = 1;
+    lexer->curline = 1;
+    lexer->curcol = 1;
     lexer->token_first = NULL;
     lexer->token_last = NULL;
 
@@ -434,10 +510,12 @@ lex_destroy(struct lex_lexer* lexer)
 
     lexer->token_first = NULL;
     lexer->token_last = NULL;
-    lexer->ehandler = NULL;
 
     sbuilder_destroy(&lexer->state.builder);
     sbuilder_destroy(&lexer->buf);
+
+    ctx_pop(lexer->ctx);
+    lexer->ctx = NULL;
 }
 
 e_statuscode
@@ -477,10 +555,17 @@ lex_feed(struct lex_lexer* lexer, char c)
 
     if (result != ST_NOT_INIT) {
         if (lexer->current == '\n') {
-            lexer->line++;
-            lexer->col = 1;
+            lexer->curline++;
+            lexer->curcol = 1;
         } else {
-            lexer->col++;
+            lexer->curcol++;
+        }
+
+        if (result == ST_OK) {
+            lexer->tokline = lexer->curline;
+            lexer->tokcol = lexer->curcol;
+
+            lctx_update_pos(lexer->ctx, lexer->tokline, lexer->tokcol);
         }
     }
 

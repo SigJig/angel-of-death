@@ -8,6 +8,11 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+#define CTX_STATE_INTERFACE                                                    \
+    fn_state_to_string to_string;                                              \
+    fn_state_free free;                                                        \
+    fn_state_copy copy
+
 struct ctx_state;
 
 typedef char* (*fn_state_to_string)(struct ctx_state*);
@@ -17,9 +22,7 @@ typedef struct ctx_state* (*fn_state_copy)(struct ctx_state*);
 typedef enum { DEBUG = 0, INFO, WARNING, ERROR, CRITICAL } ctx_e_loglevel;
 
 struct ctx_state {
-    fn_state_to_string to_string;
-    fn_state_free free;
-    fn_state_copy copy;
+    CTX_STATE_INTERFACE;
 };
 
 struct ctx_log_message {
@@ -40,10 +43,12 @@ void ctx_free(struct context* ctx);
 // Whether critical errors that should stop parsing have been encountered.
 bool ctx_continue(struct context* ctx);
 
-struct ctx_state* ctx_state(struct context* ctx);
-
 e_statuscode ctx_push(struct context* ctx, struct ctx_state* state);
 e_statuscode ctx_pop(struct context* ctx);
+
+struct ctx_state* ctx_state(struct context* ctx);
+
+char* ctx_log_to_string(struct context* ctx);
 
 e_statuscode ctx_debug(struct context* ctx, const char* message);
 e_statuscode ctx_debugf(struct context* ctx, const char* format, ...);

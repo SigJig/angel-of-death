@@ -12,11 +12,17 @@ state_free(struct ctx_state* state)
     (*state->free)(state);
 }
 
+static struct ctx_state*
+stack_get_state(struct dyn_array* stack, size_t index)
+{
+    return *(struct ctx_state**)da_get(stack, index);
+}
+
 static void
 stack_free(struct dyn_array* stack)
 {
     for (size_t i = 0; i < stack->len; i++) {
-        struct ctx_state* state = *(struct ctx_state**)da_get(stack, i);
+        struct ctx_state* state = stack_get_state(stack, i);
 
         assert(state);
 
@@ -35,12 +41,10 @@ stack_copy(struct dyn_array* stack)
         struct ctx_state** mem = (struct ctx_state**)da_reserve(copy);
         assert(mem);
 
-        struct ctx_state* state = da_get(stack, i);
+        struct ctx_state* state = stack_get_state(stack, i);
         assert(state);
 
         *mem = (*state->copy)(state);
-
-        return ST_OK;
     }
 
     return copy;
@@ -62,7 +66,7 @@ stack_trace(struct dyn_array* stack)
     }
 
     for (size_t i = 0; i < stack->len; i++) {
-        struct ctx_state* state = da_get(stack, i);
+        struct ctx_state* state = stack_get_state(stack, i);
 
         if (!stack) {
             assert(false);
@@ -72,7 +76,7 @@ stack_trace(struct dyn_array* stack)
 
         char* state_string = (*state->to_string)(state);
 
-        sbuilder_writef(&builder, "\tin <%s>\n", state_string);
+        sbuilder_writef(&builder, "in <%s>\n", state_string);
 
         free(state_string);
     }
@@ -83,6 +87,10 @@ stack_trace(struct dyn_array* stack)
 static e_statuscode
 log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
 {
+    if (level < ctx->log_level) {
+        return ST_NOT_OK;
+    }
+
     struct ctx_state* state = ctx_state(ctx);
 
     if (!state) {
@@ -117,6 +125,15 @@ log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
     return ST_OK;
 }
 
+static void
+log_destroy(struct ctx_log_message* log)
+{
+    free(log->message);
+    stack_free(log->stack);
+
+    free(log);
+}
+
 static e_statuscode
 log_vaddf(struct context* ctx, ctx_e_loglevel level, const char* format,
           va_list args)
@@ -130,8 +147,13 @@ log_vaddf(struct context* ctx, ctx_e_loglevel level, const char* format,
     }
 
     sbuilder_vwritef(&builder, format, args);
+    char* string = sbuilder_complete(&builder);
 
-    return log_add(ctx, level, sbuilder_complete(&builder));
+    e_statuscode result = log_add(ctx, level, string);
+
+    free(string);
+
+    return result;
 }
 
 static char*
@@ -149,7 +171,7 @@ log_to_string(struct ctx_log_message* log)
     sbuilder_write(&builder, trace);
     free(trace);
 
-    sbuilder_write(&builder, "<");
+    sbuilder_write(&builder, "\t<");
 
     switch (log->level) {
     case DEBUG:
@@ -212,13 +234,12 @@ ctx_free(struct context* ctx)
 
     if (ctx->log) {
         for (size_t i = 0; i < ctx->log->len; i++) {
-            struct ctx_log_message* msg =
+            struct ctx_log_message* log =
                 *(struct ctx_log_message**)da_get(ctx->log, i);
 
-            assert(msg);
+            assert(log);
 
-            free(msg->message);
-            stack_free(msg->stack);
+            log_destroy(log);
         }
 
         da_free(ctx->log);
@@ -273,6 +294,33 @@ ctx_state(struct context* ctx)
     struct ctx_state* state = *(struct ctx_state**)da_back(ctx->stack);
 
     return state;
+}
+
+char*
+ctx_log_to_string(struct context* ctx)
+{
+    if (!ctx->log->len) {
+        return NULL;
+    }
+
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, 1000) != ST_OK) {
+        assert(false);
+
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ctx->log->len; i++) {
+        char* lstr =
+            log_to_string(*(struct ctx_log_message**)da_get(ctx->log, i));
+
+        sbuilder_writef(&builder, "%s\n", lstr);
+
+        free(lstr);
+    }
+
+    return sbuilder_complete(&builder);
 }
 
 e_statuscode

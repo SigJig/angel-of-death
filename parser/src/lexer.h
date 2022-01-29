@@ -56,12 +56,14 @@ struct lex_lexer {
     char current;
     char lookahead;
 
-    size_t line;
-    size_t col;
+    size_t tokline;
+    size_t tokcol;
+    size_t curline;
+    size_t curcol;
     struct lex_token* token_first;
     struct lex_token* token_last;
 
-    struct err_handler* ehandler;
+    struct context* ctx;
     struct sbuilder buf;
 };
 
@@ -72,11 +74,11 @@ struct lex_token* lex_token_copy(struct lex_token* token);
 void lex_token_free(struct lex_token* token);
 
 // used when lexer is heap allocated
-struct lex_lexer* lex_create(struct err_handler* ehandler);
+struct lex_lexer* lex_create(struct context* ctx);
 void lex_free(struct lex_lexer* lexer);
 
 // used when lexer is not heap allocated
-e_statuscode lex_init(struct lex_lexer* lexer, struct err_handler* ehandler);
+e_statuscode lex_init(struct lex_lexer* lexer, struct context* ctx);
 void lex_destroy(struct lex_lexer* lexer);
 
 e_statuscode lex_feed(struct lex_lexer* lexer, char c);
