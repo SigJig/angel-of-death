@@ -1,105 +1,8 @@
 
 #include "parser.h"
-#include "stringbuilder.h"
+#include "utils/stringbuilder.h"
 #include <assert.h>
 #include <stdarg.h>
-
-struct pctx_state {
-    CTX_STATE_INTERFACE;
-
-    size_t line;
-    size_t col;
-};
-
-static void pctx_fn_free(struct pctx_state* state);
-static char* pctx_fn_to_string(struct pctx_state* state);
-static struct ctx_state* pctx_fn_copy(struct pctx_state* state);
-
-static struct ctx_state*
-pctx_create()
-{
-    struct pctx_state* state = malloc(sizeof *state);
-
-    state->free = (fn_state_free)pctx_fn_free;
-    state->to_string = (fn_state_to_string)pctx_fn_to_string;
-    state->copy = (fn_state_copy)pctx_fn_copy;
-    state->line = 0;
-    state->col = 0;
-
-    return (struct ctx_state*)state;
-}
-
-static struct pctx_state*
-state_from_ctx(struct context* ctx)
-{
-    struct pctx_state* state = (struct pctx_state*)ctx_state(ctx);
-
-    if (!state) {
-        assert(false);
-
-        return NULL;
-    }
-
-    return state;
-}
-
-static void
-pctx_update_line(struct context* ctx, size_t line)
-{
-    struct pctx_state* state = state_from_ctx(ctx);
-
-    if (!state) {
-        return;
-    }
-
-    state->line = line;
-}
-
-static void
-pctx_update_col(struct context* ctx, size_t col)
-{
-    struct pctx_state* state = state_from_ctx(ctx);
-
-    if (!state) {
-        return;
-    }
-
-    state->col = col;
-}
-
-static void
-pctx_fn_free(struct pctx_state* state)
-{
-    free(state);
-}
-
-static char*
-pctx_fn_to_string(struct pctx_state* state)
-{
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 50) != ST_OK) {
-        assert(false);
-
-        return NULL;
-    }
-
-    sbuilder_writef(&builder, "parser (line: %zu, column: %zu)", state->line,
-                    state->col);
-
-    return sbuilder_complete(&builder);
-}
-
-static struct ctx_state*
-pctx_fn_copy(struct pctx_state* state)
-{
-    struct pctx_state* copy = (struct pctx_state*)pctx_create();
-
-    copy->line = state->line;
-    copy->col = state->col;
-
-    return (struct ctx_state*)copy;
-}
 
 static struct parser_line*
 parser_curline_reset(struct parser* parser)
@@ -320,10 +223,10 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 
     // yes i know i can use !index u cunt
     if (index == 0) {
-        pctx_update_line(parser->ctx, token->line);
+        posctx_update_line(parser->ctx, token->line);
     }
 
-    pctx_update_col(parser->ctx, token->col);
+    posctx_update_col(parser->ctx, token->col);
 
     if (index < 6 && index & 1) {
         if (token->type == LT_DELIM) {
@@ -368,7 +271,7 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 struct parser_result
 parser_parse(struct lex_token* tokens, struct context* ctx)
 {
-    ctx_push(ctx, pctx_create());
+    ctx_push(ctx, posctx_create("parser"));
     struct parser_result empty = {.front = NULL, .back = NULL};
 
     if (!tokens)

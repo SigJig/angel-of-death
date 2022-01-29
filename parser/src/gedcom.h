@@ -2,11 +2,11 @@
 #ifndef GEDCOM_H
 #define GEDCOM_H
 
-#include "dynarray.h"
 #include "lexer.h"
 #include "parser.h"
-#include "stringbuilder.h"
 #include "tags/base.h"
+#include "utils/dynarray.h"
+#include "utils/stringbuilder.h"
 #include <stdint.h>
 
 struct ged_record {

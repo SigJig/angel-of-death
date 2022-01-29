@@ -1,5 +1,5 @@
 
-#include "dynarray.h"
+#include "utils/dynarray.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>

@@ -4,9 +4,10 @@
 
 #include <stdint.h>
 
-#include "context.h"
+#include "context/context.h"
+#include "context/genstate.h"
 #include "lexer.h"
-#include "statuscode.h"
+#include "utils/statuscode.h"
 
 #define LEVEL_MAX 99
 #define LEVEL_INVALID -1

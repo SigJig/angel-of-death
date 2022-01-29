@@ -6,9 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "context.h"
-#include "statuscode.h"
-#include "stringbuilder.h"
+#include "context/context.h"
+#include "context/genstate.h"
+#include "utils/statuscode.h"
+#include "utils/stringbuilder.h"
 
 typedef enum {
     LT_NUMBER = 0,

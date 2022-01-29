@@ -2,9 +2,9 @@
 #include <assert.h>
 #include <stdarg.h>
 
-#include "dynarray.h"
 #include "gedcom.h"
-#include "hashmap.h"
+#include "utils/dynarray.h"
+#include "utils/hashmap.h"
 
 #define DEFAULT_STACK_CAP 100
 #define DEFAULT_STACK_CAP_MULT 2

@@ -2,9 +2,9 @@
 #ifndef TAGS_BASE_H
 #define TAGS_BASE_H
 
-#include "context.h"
+#include "context/context.h"
 #include "gedcom.h"
-#include "hashmap.h"
+#include "utils/hashmap.h"
 
 #define TAG_BASE                                                               \
     struct tag_interface* interface;                                           \

@@ -1,5 +1,5 @@
 
-#include "hashmap.h"
+#include "utils/hashmap.h"
 
 #include <assert.h>
 #include <stdbool.h>

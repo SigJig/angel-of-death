@@ -1,9 +1,9 @@
 
-#include "context.h"
-#include "dynarray.h"
-#include "hashmap.h"
+#include "context/context.h"
 #include "lexer.h"
 #include "parser.h"
+#include "utils/dynarray.h"
+#include "utils/hashmap.h"
 #include <assert.h>
 #include <stdio.h>
 

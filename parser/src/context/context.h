@@ -2,8 +2,8 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include "dynarray.h"
-#include "statuscode.h"
+#include "utils/dynarray.h"
+#include "utils/statuscode.h"
 #include <stdarg.h>
 #include <stdbool.h>
 

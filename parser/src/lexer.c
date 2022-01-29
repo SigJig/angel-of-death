@@ -78,88 +78,6 @@ is_line_feed(char c)
     return c == '\n';
 }
 
-struct lctx_state {
-    CTX_STATE_INTERFACE;
-
-    size_t line;
-    size_t col;
-};
-
-static void lctx_fn_free(struct lctx_state* state);
-static char* lctx_fn_to_string(struct lctx_state* state);
-static struct ctx_state* lctx_fn_copy(struct lctx_state* state);
-
-static struct ctx_state*
-lctx_create()
-{
-    struct lctx_state* state = malloc(sizeof *state);
-
-    if (!state) {
-        return NULL;
-    }
-
-    state->free = (fn_state_free)lctx_fn_free;
-    state->to_string = (fn_state_to_string)lctx_fn_to_string;
-    state->copy = (fn_state_copy)lctx_fn_copy;
-    state->line = 0;
-    state->col = 0;
-
-    return (struct ctx_state*)state;
-}
-
-static void
-lctx_update_pos(struct context* ctx, size_t line, size_t col)
-{
-    struct lctx_state* state = (struct lctx_state*)ctx_state(ctx);
-
-    if (!state) {
-        assert(false);
-
-        return;
-    }
-
-    state->line = line;
-    state->col = col;
-}
-
-static void
-lctx_fn_free(struct lctx_state* state)
-{
-    free(state);
-}
-
-static char*
-lctx_fn_to_string(struct lctx_state* state)
-{
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 50) != ST_OK) {
-        assert(false);
-
-        return NULL;
-    }
-
-    sbuilder_writef(&builder, "lexer (line: %zu, column: %zu)", state->line,
-                    state->col);
-
-    return sbuilder_complete(&builder);
-}
-
-static struct ctx_state*
-lctx_fn_copy(struct lctx_state* state)
-{
-    struct lctx_state* copy = (struct lctx_state*)lctx_create();
-
-    if (!copy) {
-        return NULL;
-    }
-
-    copy->line = state->line;
-    copy->col = state->col;
-
-    return (struct ctx_state*)copy;
-}
-
 static struct lex_token*
 lex_add_token(struct lex_lexer* lexer, lex_token_type type, char* lexeme)
 {
@@ -468,7 +386,7 @@ lex_init(struct lex_lexer* lexer, struct context* ctx)
         return ST_INIT_FAIL;
     }
 
-    ctx_push(ctx, lctx_create());
+    ctx_push(ctx, posctx_create("lexer"));
 
     lexer->ctx = ctx;
     lexer->eof_reached = false;
@@ -565,7 +483,7 @@ lex_feed(struct lex_lexer* lexer, char c)
             lexer->tokline = lexer->curline;
             lexer->tokcol = lexer->curcol;
 
-            lctx_update_pos(lexer->ctx, lexer->tokline, lexer->tokcol);
+            posctx_update(lexer->ctx, lexer->tokline, lexer->tokcol);
         }
     }
 
