@@ -41,7 +41,7 @@ from_example(const char* path)
     FILE* fp = fopen(path, "r");
     assert(fp);
 
-    struct context* ctx = ctx_create(INFO);
+    struct context* ctx = ctx_create(NONE);
     ctx_push(ctx, posctx_create("lexer"));
 
     struct lex_lexer* lexer = lex_create(ctx);

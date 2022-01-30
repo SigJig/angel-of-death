@@ -17,6 +17,10 @@ struct tag_base {
     TAG_BASE;
 };
 
+struct tag_invalid {
+    TAG_BASE;
+};
+
 typedef struct tag_base* (*fn_create)(struct tag_interface*, struct ged_record*,
                                       struct lex_token*, struct context* ctx);
 

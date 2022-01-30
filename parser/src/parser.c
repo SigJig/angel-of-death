@@ -219,13 +219,13 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 {
     int index = parser->state.index;
 
-    parser->state.index++;
-
     // leading whitespace
     if (!index && (token->type == LT_WHITESPACE || token->type == LT_DELIM ||
                    is_terminator(token))) {
         return ST_NOT_OK;
     }
+
+    parser->state.index++;
 
     // yes i know i can use !index u cunt
     if (index == 0) {

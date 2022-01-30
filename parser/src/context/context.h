@@ -18,7 +18,7 @@ typedef char* (*fn_state_to_string)(struct ctx_state*);
 typedef void (*fn_state_free)(struct ctx_state*);
 typedef struct ctx_state* (*fn_state_copy)(struct ctx_state*);
 
-typedef enum { DEBUG = 0, INFO, WARNING, ERROR, CRITICAL } ctx_e_loglevel;
+typedef enum { DEBUG = 0, INFO, WARNING, ERROR, CRITICAL, NONE } ctx_e_loglevel;
 
 struct ctx_state {
     CTX_STATE_INTERFACE;

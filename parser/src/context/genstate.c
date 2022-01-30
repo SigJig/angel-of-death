@@ -3,6 +3,7 @@
 #include "utils/stringbuilder.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct ctx_state*
 posctx_create(const char* origin)
@@ -103,4 +104,57 @@ posctx_fn_copy(struct posctx_state* state)
     copy->col = state->col;
 
     return (struct ctx_state*)copy;
+}
+
+struct ctx_state*
+tagctx_create(char* name, size_t line, size_t col)
+{
+    struct tagctx_state* state = malloc(sizeof *state);
+
+    if (!state) {
+        return NULL;
+    }
+
+    state->free = (fn_state_free)tagctx_fn_free;
+    state->to_string = (fn_state_to_string)tagctx_fn_to_string;
+    state->copy = (fn_state_copy)tagctx_fn_copy;
+    state->name = strdup(name);
+    state->line = line;
+    state->col = col;
+
+    return (struct ctx_state*)state;
+}
+
+void
+tagctx_fn_free(struct tagctx_state* state)
+{
+    if (!state) {
+        return;
+    }
+
+    free(state->name);
+    free(state);
+}
+
+char*
+tagctx_fn_to_string(struct tagctx_state* state)
+{
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, 20) != ST_OK) {
+        assert(false);
+
+        return NULL;
+    }
+
+    sbuilder_writef(&builder, "tag %s (line %zu, column %zu)", state->name,
+                    state->line, state->col);
+
+    return sbuilder_complete(&builder);
+}
+
+struct ctx_state*
+tagctx_fn_copy(struct tagctx_state* state)
+{
+    return tagctx_create(state->name, state->line, state->col);
 }

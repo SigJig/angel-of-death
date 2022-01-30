@@ -34,6 +34,8 @@ builder_init(struct ged_builder* ged, struct context* ctx)
     ged->xrefs = ht_create(DEFAULT_XREFS_CAP);
     ged->ctx = ctx;
 
+    tags_init();
+
     return ST_OK;
 }
 
@@ -53,6 +55,8 @@ builder_destroy(struct ged_builder* ged)
     da_free(ged->stack);
     ht_free(ged->xrefs);
     ged->ctx = NULL;
+
+    tags_cleanup();
 }
 
 static e_statuscode
@@ -162,12 +166,15 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     }
 
     if (line->line_value) {
-#if 0
         struct tag_interface* interface = tag_i_get(rec->tag);
+
+        ctx_push(ged->ctx,
+                 tagctx_create(rec->tag, line->tag->line, line->tag->col));
 
         rec->value =
             (*interface->create)(interface, rec, line->line_value, ged->ctx);
-#endif
+
+        ctx_pop(ged->ctx);
     }
 
     if (rec->level > ged->cur_level) {
@@ -175,7 +182,7 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
             ctx_critf(ged->ctx, "invalid line level (should be %d, %d, is %d)",
                       ged->cur_level, ged->cur_level + 1, rec->level);
 
-            return NULL;
+            goto error;
         }
     } else {
         while (ged->stack->len && rec->level <= ged->cur_level) {
