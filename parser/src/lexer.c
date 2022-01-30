@@ -43,9 +43,15 @@ is_delim(char c)
 }
 
 static bool
+is_eof(char c)
+{
+    return c == EOF;
+}
+
+static bool
 is_terminator(char c)
 {
-    return is_delim(c) || c == '\n' || c == '\r';
+    return is_delim(c) || c == '\n' || c == '\r' || is_eof(c);
 }
 
 static bool
@@ -112,6 +118,13 @@ lex_reset_state(struct lex_lexer* lexer)
     }
 
     lexer->state.possible_length = (int)LT_INVALID;
+}
+
+static void
+lex_tok_complete(struct lex_lexer* lexer, lex_token_type type)
+{
+    lex_add_token(lexer, type, sbuilder_return(&lexer->state.builder));
+    lex_reset_state(lexer);
 }
 
 static lex_e_valid
@@ -209,6 +222,8 @@ lex_validate(struct lex_lexer* lexer, lex_token_type type, char c)
         return is_space(c) ? LV_DONE : LV_NOT;
     case LT_WHITESPACE:
         return (is_space(c) || c == '\t') ? LV_DONE : LV_NOT;
+    case LT_EOF:
+        return is_eof(c) ? LV_DONE : LV_NOT;
     default: {
         assert(false /*unrecognized type*/);
         return LV_NOT;
@@ -232,9 +247,9 @@ lex_advance(struct lex_lexer* lexer)
         bool write = false;
 
         // if eof has been reached, return the first possible
-        if (lexer->eof_reached) {
+        /*if (lexer->eof_reached) {
             goto done;
-        }
+        }*/
 
         lex_e_valid status = lex_validate(lexer, type, c);
 
@@ -243,59 +258,45 @@ lex_advance(struct lex_lexer* lexer)
             if ((*status_cache == LV_DONE_WHEN_NOT) ||
                 (*status_cache == LV_DONE_WHEN_DELIM && is_terminator(c))) {
 
-                goto done;
+                lex_tok_complete(lexer, type);
+                e_statuscode nxt_status = lex_advance(lexer);
+
+                if (!(nxt_status == ST_OK || nxt_status == ST_NOT_OK)) {
+                    return nxt_status;
+                }
+
+                return ST_OK;
             }
 
-            goto remove;
+            lexer->state.possible_types[i] = LT_INVALID;
+            lexer->state.possible_length--;
+
+            continue;
         }
         case LV_CONT: {
-            goto nothing;
+            continue;
         }
         case LV_DONE: {
-            write = true;
-            goto done;
+            sbuilder_write_char(&lexer->state.builder, c);
+            lex_tok_complete(lexer, type);
+
+            return ST_OK;
         }
         case LV_DONE_WHEN_NOT: {
             *status_cache = LV_DONE_WHEN_NOT;
 
-            goto nothing;
+            continue;
         }
         case LV_DONE_WHEN_DELIM: {
             *status_cache = LV_DONE_WHEN_DELIM;
 
-            goto nothing;
+            continue;
         }
         default: {
             assert(false /*unrecognized status*/);
             return ST_GEN_ERROR;
         }
         }
-
-    nothing:
-        continue;
-
-    remove:
-        lexer->state.possible_types[i] = LT_INVALID;
-        lexer->state.possible_length--;
-
-        continue;
-    done:
-        if (write) {
-            sbuilder_write_char(&lexer->state.builder, c);
-        }
-
-        lex_add_token(lexer, type, sbuilder_return(&lexer->state.builder));
-        lex_reset_state(lexer);
-
-        if (!write && !lexer->eof_reached) {
-            e_statuscode nxt_status = lex_advance(lexer);
-
-            if (!(nxt_status == ST_OK || nxt_status == ST_NOT_OK)) {
-                return nxt_status;
-            }
-        }
-
-        return ST_OK;
     }
 
     if (!lexer->state.possible_length) {
@@ -386,8 +387,6 @@ lex_init(struct lex_lexer* lexer, struct context* ctx)
         return ST_INIT_FAIL;
     }
 
-    ctx_push(ctx, posctx_create("lexer"));
-
     lexer->ctx = ctx;
     lexer->eof_reached = false;
     lexer->current = '\0';
@@ -432,7 +431,6 @@ lex_destroy(struct lex_lexer* lexer)
     sbuilder_destroy(&lexer->state.builder);
     sbuilder_destroy(&lexer->buf);
 
-    ctx_pop(lexer->ctx);
     lexer->ctx = NULL;
 }
 
@@ -444,11 +442,10 @@ lex_feed(struct lex_lexer* lexer, char c)
     }
 
     lexer->current = lexer->lookahead;
-    bool eof = false;
 
     if (c == EOF || c == '\0') {
-        eof = true;
-        lexer->lookahead = '\0';
+        lexer->eof_reached = true;
+        lexer->lookahead = EOF;
     } else {
         lexer->lookahead = c;
     }
@@ -459,12 +456,10 @@ lex_feed(struct lex_lexer* lexer, char c)
 
     e_statuscode result = lex_advance(lexer);
 
-    lexer->eof_reached = eof;
-
     // final call
     if (lexer->eof_reached) {
         lexer->current = lexer->lookahead;
-        lexer->lookahead = '\0';
+        lexer->lookahead = EOF;
 
         e_statuscode nxtresult = lex_advance(lexer);
 

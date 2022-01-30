@@ -4,6 +4,12 @@
 #include <assert.h>
 #include <stdarg.h>
 
+static bool
+is_terminator(struct lex_token* token)
+{
+    return token->type == LT_TERMINATOR || token->type == LT_EOF;
+}
+
 static struct parser_line*
 parser_curline_reset(struct parser* parser)
 {
@@ -66,7 +72,7 @@ parser_valid_at_idx(struct parser* parser, struct lex_token* token, int index)
     case 4:
         return (token->type == LT_S_ALNUM || token->type == LT_NUMBER);
     default:
-        return (token->type != LT_TERMINATOR);
+        return !is_terminator(token);
     }
 
     return false;
@@ -217,7 +223,7 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 
     // leading whitespace
     if (!index && (token->type == LT_WHITESPACE || token->type == LT_DELIM ||
-                   token->type == LT_TERMINATOR)) {
+                   is_terminator(token))) {
         return ST_NOT_OK;
     }
 
@@ -228,23 +234,25 @@ parser_parse_token(struct parser* parser, struct lex_token* token)
 
     posctx_update_col(parser->ctx, token->col);
 
-    if (index < 6 && index & 1) {
+    if (index < 6 && (index & 1)) {
         if (token->type == LT_DELIM) {
             return ST_NOT_OK;
-        } else if (!(index == 5 && token->type == LT_TERMINATOR)) {
-            // If index 5 is not a delimeter, it must be a terminator.
+        } else if (!(index == 5 && is_terminator(token))) {
+            // If index 5 is not a delimeter, it must be a terminator or eof.
 
             ctx_critf(
                 parser->ctx,
                 "optional value must start with a delimeter, or be omitted "
-                "completely with a terminator (expected type (%d, %d), got %d)",
-                (int)LT_DELIM, (int)LT_TERMINATOR, (int)token->type);
+                "completely with a terminator or end-of-file (expected type "
+                "(%d, %d, %d), got %d)",
+                (int)LT_DELIM, (int)LT_TERMINATOR, (int)LT_EOF,
+                (int)token->type);
 
             return ST_GEN_ERROR;
         }
     }
 
-    if (index > 4 && token->type == LT_TERMINATOR) {
+    if (index > 4 && is_terminator(token)) {
         parser_curline_terminate(parser);
         return ST_OK;
     }

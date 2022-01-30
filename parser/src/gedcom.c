@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdarg.h>
 
+#include "context/context.h"
+#include "context/genstate.h"
 #include "gedcom.h"
 #include "utils/dynarray.h"
 #include "utils/hashmap.h"
@@ -14,14 +16,10 @@
 #define DEFAULT_XREFS_CAP 131
 
 struct ged_builder {
-    struct err_handler* ehandler;
-
     uint8_t cur_level;
 
-    // The stack contains pointers to record pointers
-    // Thus, the records are not freed when calling free on the stack's
-    // memory block
     struct dyn_array* stack;
+
     struct hash_table* xrefs;
     struct context* ctx;
 };
@@ -35,14 +33,19 @@ builder_init(struct ged_builder* ged, struct context* ctx)
     ged->stack = da_create(DEFAULT_STACK_CAP, sizeof(struct ged_record*));
     ged->xrefs = ht_create(DEFAULT_XREFS_CAP);
     ged->ctx = ctx;
+
+    return ST_OK;
 }
 
 static void
 builder_destroy(struct ged_builder* ged)
 {
     if (ged->stack->len) {
-        for (size_t i = 0; i < ged->stack->len; i++) {
+        ctx_debugf(ged->ctx,
+                   "ged_builder destroying with non-empty stack (%zu items)",
+                   ged->stack->len);
 
+        for (size_t i = 0; i < ged->stack->len; i++) {
             ged_record_free(*(struct ged_record**)da_get(ged->stack, i));
         }
     }
@@ -94,17 +97,34 @@ builder_child_add(struct ged_builder* ged, struct ged_record* rec)
 static struct ged_record*
 builder_stack_pop(struct ged_builder* ged)
 {
-    if (ged->cur_level) {
-        ged->cur_level--;
+    if (!ged->stack->len) {
+        return NULL;
     }
 
-    return *(struct ged_record**)da_pop(ged->stack);
+    struct ged_record* result = *(struct ged_record**)da_pop(ged->stack);
+
+    if (ged->stack->len) {
+        struct ged_record* back = *(struct ged_record**)da_back(ged->stack);
+
+        ged->cur_level = back->level;
+    } else {
+        ged->cur_level = 0;
+    }
+
+    return result;
 }
 
 struct ged_record*
 ged_record_construct(struct ged_builder* ged, struct parser_line* line)
 {
     struct ged_record* rec = malloc(sizeof *rec);
+
+    rec->level = 0;
+    rec->xref = NULL;
+    rec->tag = NULL;
+    rec->value = NULL;
+    rec->next = NULL;
+    rec->children = NULL;
 
     char* level = line->level->lexeme;
     int level_parsed = atoi(level);
@@ -117,7 +137,7 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
                   "declarations (%s)",
                   level);
 
-    } else if (level_parsed == 0) {
+    } else if (level_parsed == 0 && level[0] != '0') {
         ctx_critf(ged->ctx, "unable to parse %s as level", level);
         goto error;
     }
@@ -129,12 +149,10 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
 
         // add to symbol table
         if (ht_get(ged->xrefs, rec->xref) != NULL) {
-            ctx_critf(ged->ctx, "xref %s already defined", rec->xref);
+            ctx_errf(ged->ctx, "xref %s already defined", rec->xref);
         } else {
             ht_set(ged->xrefs, rec->xref, rec);
         }
-    } else {
-        rec->xref = NULL;
     }
 
     rec->tag = strdup(line->tag->lexeme);
@@ -144,28 +162,29 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     }
 
     if (line->line_value) {
+#if 0
         struct tag_interface* interface = tag_i_get(rec->tag);
 
         rec->value =
             (*interface->create)(interface, rec, line->line_value, ged->ctx);
-    } else {
-        rec->value = NULL;
+#endif
     }
 
-    if (rec->level) {
-        if (rec->level > ged->cur_level) {
-            if (rec->level != ged->cur_level + 1) {
-                ctx_critf(ged->ctx,
-                          "invalid line level (should be %d, %d, is %d)",
-                          ged->cur_level, ged->cur_level + 1, rec->level);
+    if (rec->level > ged->cur_level) {
+        if (rec->level != ged->cur_level + 1) {
+            ctx_critf(ged->ctx, "invalid line level (should be %d, %d, is %d)",
+                      ged->cur_level, ged->cur_level + 1, rec->level);
 
-                return NULL;
-            }
-
-            builder_child_add(ged, rec);
-        } else {
+            return NULL;
+        }
+    } else {
+        while (ged->stack->len && rec->level <= ged->cur_level) {
             builder_stack_pop(ged);
         }
+    }
+
+    if (ged->stack->len) {
+        builder_child_add(ged, rec);
     }
 
     if (builder_stack_add(ged, rec) != ST_OK) {
@@ -181,12 +200,60 @@ error:
     return NULL;
 }
 
+struct ged_record*
+ged_from_parser(struct parser_result result, struct context* ctx)
+{
+    struct ged_builder ged;
+
+    if (builder_init(&ged, ctx) != ST_OK) {
+        return NULL;
+    }
+
+    ctx_push(ctx, posctx_create("generator"));
+
+    struct parser_line* line = result.front;
+
+    struct ged_record* front = NULL;
+    struct ged_record* tmp = NULL;
+
+    while (line) {
+        struct ged_record* cur = ged_record_construct(&ged, line);
+
+        if (!cur) {
+            ctx_debugf(ctx, "unable to create record for line %d",
+                       line->level->line);
+        } else if (cur->level) {
+            ctx_debugf(ctx, "skipping record level %d", cur->level);
+        } else if (tmp) {
+            tmp->next = cur;
+            tmp = cur;
+        } else {
+            front = cur;
+            tmp = front;
+        }
+
+        line = line->next;
+    }
+    builder_stack_pop(&ged);
+
+    builder_destroy(&ged);
+    ctx_pop(ctx);
+
+    return front;
+}
+
 void
 ged_record_free(struct ged_record* rec)
 {
+    if (!rec) {
+        assert(false);
+        return;
+    }
+
     if (rec->xref) {
         free(rec->xref);
     }
+
     if (rec->tag) {
         free(rec->tag);
     }
@@ -195,9 +262,49 @@ ged_record_free(struct ged_record* rec)
         (*rec->value->interface->free)(rec->value);
     }
 
-    for (uint8_t i = 0; i < rec->len_children; i++) {
-        ged_record_free(&rec->children[i]);
+    struct ged_record* child = rec->children;
+    struct ged_record* tmp = NULL;
+
+    while (child) {
+        tmp = child;
+        child = child->next;
+
+        ged_record_free(tmp);
     }
 
     free(rec);
+}
+
+char*
+ged_record_to_string(struct ged_record* rec)
+{
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, 100) != ST_OK) {
+        return NULL;
+    }
+
+    for (uint8_t i = 0; i < rec->level; i++) {
+        sbuilder_write(&builder, "\t");
+    }
+
+    sbuilder_writef(&builder, "%d: ", rec->level);
+
+    if (rec->xref) {
+        sbuilder_writef(&builder, " <xref: %s>", rec->xref);
+    }
+
+    sbuilder_writef(&builder, " <%s> (value)\n", rec->tag);
+
+    struct ged_record* child = rec->children;
+
+    while (child) {
+        char* chstr = ged_record_to_string(child);
+        sbuilder_writef(&builder, "%s", chstr);
+        free(chstr);
+
+        child = child->next;
+    }
+
+    return sbuilder_complete(&builder);
 }

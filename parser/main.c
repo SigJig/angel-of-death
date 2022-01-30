@@ -1,5 +1,6 @@
 
 #include "context/context.h"
+#include "gedcom.h"
 #include "lexer.h"
 #include "parser.h"
 #include "utils/dynarray.h"
@@ -40,7 +41,8 @@ from_example(const char* path)
     FILE* fp = fopen(path, "r");
     assert(fp);
 
-    struct context* ctx = ctx_create(DEBUG);
+    struct context* ctx = ctx_create(INFO);
+    ctx_push(ctx, posctx_create("lexer"));
 
     struct lex_lexer* lexer = lex_create(ctx);
     assert(lexer);
@@ -49,6 +51,8 @@ from_example(const char* path)
         lex_feed(lexer, c);
     }
     lex_feed(lexer, EOF);
+
+    ctx_pop(ctx);
 
     if (print_errors(ctx) && !ctx_continue(ctx)) {
         goto cleanup;
@@ -59,7 +63,7 @@ from_example(const char* path)
 
 #if 1
     int index = 0;
-    while (tok && index < 10) {
+    while (tok /* && index < 0*/) {
         if (tok->type != LT_DELIM && tok->type != LT_WHITESPACE)
             printf("\t%d: %s\n", tok->type, tok->lexeme);
 
@@ -76,7 +80,7 @@ from_example(const char* path)
     struct parser_line* line = presult.front;
 
     while (line) {
-#if 0
+#if 1
         char* str = parser_line_to_string(line);
         printf("%s\n", str);
         free(str);
@@ -84,6 +88,22 @@ from_example(const char* path)
 
         line = line->next;
     }
+
+    struct ged_record* recfront = ged_from_parser(presult, ctx);
+    struct ged_record* tmp = NULL;
+
+    while (recfront) {
+        tmp = recfront;
+        recfront = recfront->next;
+
+        char* tostring = ged_record_to_string(tmp);
+        printf("%s\n", tostring);
+        free(tostring);
+
+        ged_record_free(tmp);
+    }
+
+    print_errors(ctx);
 
     parser_result_destroy(&presult);
 #endif
