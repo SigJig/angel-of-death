@@ -9,7 +9,7 @@
 static struct ctx_state*
 stack_get_state(struct dyn_array* stack, size_t index)
 {
-    return *(struct ctx_state**)da_get(stack, index);
+    return da_get(stack, index);
 }
 
 static void
@@ -29,16 +29,13 @@ stack_free(struct dyn_array* stack)
 static struct dyn_array*
 stack_copy(struct dyn_array* stack)
 {
-    struct dyn_array* copy = da_create(stack->len, stack->byte_n);
+    struct dyn_array* copy = da_create(stack->len);
 
     for (size_t i = 0; i < stack->len; i++) {
-        struct ctx_state** mem = (struct ctx_state**)da_reserve(copy);
-        assert(mem);
-
         struct ctx_state* state = stack_get_state(stack, i);
         assert(state);
 
-        *mem = state->interface->copy(state);
+        da_push(copy, state->interface->copy(state));
     }
 
     return copy;
@@ -103,16 +100,7 @@ log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
     msg->message = strdup(message);
     msg->stack = stack_copy(ctx->stack);
 
-    struct ctx_log_message** mem =
-        (struct ctx_log_message**)da_reserve(ctx->log);
-
-    if (!mem) {
-        assert(false);
-
-        return ST_MALLOC_ERROR;
-    }
-
-    *mem = msg;
+    da_push(ctx->log, msg);
 
     return ST_OK;
 }
@@ -227,8 +215,8 @@ ctx_create(ctx_e_loglevel log_level)
 
     ctx->can_continue = true;
     ctx->log_level = log_level;
-    ctx->stack = da_create(100, sizeof(struct ctx_state*));
-    ctx->log = da_create(10, sizeof(struct ctx_log_message*));
+    ctx->stack = da_create(100);
+    ctx->log = da_create(10);
 
     if (!(ctx->log && ctx->stack)) {
         assert(false /* ctx members initialization failed */);
@@ -249,8 +237,7 @@ ctx_free(struct context* ctx)
 
     if (ctx->log) {
         for (size_t i = 0; i < ctx->log->len; i++) {
-            struct ctx_log_message* log =
-                *(struct ctx_log_message**)da_get(ctx->log, i);
+            struct ctx_log_message* log = da_get(ctx->log, i);
 
             assert(log);
 
@@ -276,17 +263,7 @@ ctx_continue(struct context* ctx)
 e_statuscode
 ctx_push(struct context* ctx, struct ctx_state* state)
 {
-    struct ctx_state** mem = (struct ctx_state**)da_reserve(ctx->stack);
-
-    if (!mem) {
-        assert(false /* Memory allocation for stack push failed */);
-
-        return ST_MALLOC_ERROR;
-    }
-
-    *mem = state;
-
-    return ST_OK;
+    return da_push(ctx->stack, state);
 }
 
 e_statuscode
@@ -297,7 +274,7 @@ ctx_pop(struct context* ctx)
         return ST_GEN_ERROR;
     }
 
-    struct ctx_state* state = *(struct ctx_state**)da_pop(ctx->stack);
+    struct ctx_state* state = da_pop(ctx->stack);
 
     ctx_state_destroy(state);
 
@@ -312,7 +289,7 @@ ctx_state(struct context* ctx)
         return NULL;
     }
 
-    struct ctx_state* state = *(struct ctx_state**)da_back(ctx->stack);
+    struct ctx_state* state = da_back(ctx->stack);
 
     return state;
 }
@@ -333,8 +310,7 @@ ctx_log_to_string(struct context* ctx)
     }
 
     for (size_t i = 0; i < ctx->log->len; i++) {
-        char* lstr =
-            log_to_string(*(struct ctx_log_message**)da_get(ctx->log, i));
+        char* lstr = log_to_string(da_get(ctx->log, i));
 
         sbuilder_writef(&builder, "%s\n", lstr);
 

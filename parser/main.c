@@ -8,6 +8,37 @@
 #include <assert.h>
 #include <stdio.h>
 
+struct ehm {
+    int x;
+    int y;
+};
+
+void
+test_dynarray(void)
+{
+    struct dyn_array* da = da_create(5);
+    struct ehm* e = malloc(sizeof *e);
+    e->x = 3;
+    e->y = 2;
+
+    da_push(da, (void*)5);
+    da_push(da, (void*)4);
+    da_push(da, (void*)3);
+    da_push(da, (void*)2);
+    da_push(da, (void*)1);
+
+    for (int i = 0; i < 5; i++) {
+        printf("dig %d\n", (int)da_pop(da));
+    }
+
+    da_push(da, e);
+    struct ehm* t = da_pop(da);
+    printf("%d, %d\n", t->x, t->y);
+
+    free(e);
+    da_free(da);
+}
+
 void
 test_hashtable(void)
 {
@@ -118,6 +149,7 @@ cleanup:
 int
 main(int argc, char** argv)
 {
+    test_dynarray();
     test_hashtable();
 
 #if 1

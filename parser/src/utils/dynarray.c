@@ -11,14 +11,14 @@ static void*
 da_get_unsafe(struct dyn_array* da, size_t index)
 {
     // cast because void* does not support pointer arithmetic
-    return ((char*)da->mem) + (index * da->byte_n);
+    return (char*)da->mem + (index * sizeof(void*));
 }
 
 struct dyn_array*
-da_create(size_t cap, size_t byte_n)
+da_create(size_t cap)
 {
-    if (!cap || !byte_n) {
-        assert(false /* Dyn array invalid values */);
+    if (!cap) {
+        assert(false /* Dyn array invalid value */);
         return NULL;
     }
 
@@ -30,9 +30,8 @@ da_create(size_t cap, size_t byte_n)
 
     da->len = 0;
     da->cap = cap;
-    da->byte_n = byte_n;
 
-    da->mem = malloc(da->cap * da->byte_n);
+    da->mem = malloc(da->cap * (sizeof(void*)));
 
     if (!da->mem) {
         da_free(da);
@@ -62,7 +61,7 @@ da_reserve(struct dyn_array* da)
 
         assert(mult_factor);
         da->cap *= mult_factor;
-        da->mem = realloc(da->mem, da->cap * da->byte_n);
+        da->mem = realloc(da->mem, da->cap * (sizeof(void*)));
 
         if (!da->mem)
             return NULL;
@@ -77,7 +76,7 @@ da_get(struct dyn_array* da, size_t index)
     if (index >= da->len)
         return NULL;
 
-    return da_get_unsafe(da, index);
+    return *(void**)da_get_unsafe(da, index);
 }
 
 void*
@@ -107,5 +106,21 @@ da_pop(struct dyn_array* da)
 
     // da->len--;
 
-    return da_get_unsafe(da, --da->len);
+    return *(void**)da_get_unsafe(da, --da->len);
+}
+
+e_statuscode
+da_push(struct dyn_array* da, void* data)
+{
+    void** mem = (void**)da_reserve(da);
+
+    if (!mem) {
+        assert(false);
+
+        return ST_MALLOC_ERROR;
+    }
+
+    *mem = data;
+
+    return ST_OK;
 }

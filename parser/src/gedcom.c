@@ -30,7 +30,7 @@ builder_init(struct ged_builder* ged, struct context* ctx)
     assert(DEFAULT_STACK_CAP);
 
     ged->cur_level = 0;
-    ged->stack = da_create(DEFAULT_STACK_CAP, sizeof(struct ged_record*));
+    ged->stack = da_create(DEFAULT_STACK_CAP);
     ged->xrefs = ht_create(DEFAULT_XREFS_CAP);
     ged->ctx = ctx;
 
@@ -48,7 +48,7 @@ builder_destroy(struct ged_builder* ged)
                    ged->stack->len);
 
         for (size_t i = 0; i < ged->stack->len; i++) {
-            ged_record_free(*(struct ged_record**)da_get(ged->stack, i));
+            ged_record_free(da_get(ged->stack, i));
         }
     }
 
@@ -63,11 +63,12 @@ static e_statuscode
 builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
 {
     ged->cur_level = rec->level;
-    struct ged_record** mem = da_reserve(ged->stack);
-    if (!mem)
-        return ST_MALLOC_ERROR;
 
-    *mem = rec;
+    e_statuscode result = da_push(ged->stack, rec);
+
+    if (result != ST_OK) {
+        return result;
+    }
 
     return ST_OK;
 }
@@ -75,16 +76,16 @@ builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
 static e_statuscode
 builder_child_add(struct ged_builder* ged, struct ged_record* rec)
 {
-    struct ged_record** recp = da_back(ged->stack);
+    struct ged_record* back = da_back(ged->stack);
 
-    if (!(recp && *recp)) {
-        return ST_MALLOC_ERROR;
+    if (!back) {
+        return ST_GEN_ERROR;
     }
 
-    struct ged_record* last = (*recp)->children;
+    struct ged_record* last = back->children;
 
     if (!last) {
-        (*recp)->children = rec;
+        back->children = rec;
     } else {
         while (last->next) {
             last = last->next;
@@ -105,10 +106,10 @@ builder_stack_pop(struct ged_builder* ged)
         return NULL;
     }
 
-    struct ged_record* result = *(struct ged_record**)da_pop(ged->stack);
+    struct ged_record* result = da_pop(ged->stack);
 
     if (ged->stack->len) {
-        struct ged_record* back = *(struct ged_record**)da_back(ged->stack);
+        struct ged_record* back = da_back(ged->stack);
 
         ged->cur_level = back->level;
     } else {
