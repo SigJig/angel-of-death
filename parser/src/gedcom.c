@@ -65,7 +65,7 @@ builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
     ged->cur_level = rec->level;
     struct ged_record** mem = da_reserve(ged->stack);
     if (!mem)
-        return ST_GEN_ERROR;
+        return ST_MALLOC_ERROR;
 
     *mem = rec;
 
@@ -78,7 +78,7 @@ builder_child_add(struct ged_builder* ged, struct ged_record* rec)
     struct ged_record** recp = da_back(ged->stack);
 
     if (!(recp && *recp)) {
-        return ST_GEN_ERROR;
+        return ST_MALLOC_ERROR;
     }
 
     struct ged_record* last = (*recp)->children;
@@ -285,11 +285,7 @@ ged_record_free(struct ged_record* rec)
 char*
 ged_record_to_string(struct ged_record* rec)
 {
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 100) != ST_OK) {
-        return NULL;
-    }
+    struct sbuilder builder = sbuilder_new();
 
     for (uint8_t i = 0; i < rec->level; i++) {
         sbuilder_write(&builder, "\t");
@@ -313,5 +309,5 @@ ged_record_to_string(struct ged_record* rec)
         child = child->next;
     }
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }

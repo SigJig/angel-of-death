@@ -84,6 +84,22 @@ is_line_feed(char c)
     return c == '\n';
 }
 
+// Number of @s at the back of an sbuilder
+static int
+num_at_back(struct sbuilder* builder)
+{
+    if (!builder->len)
+        return 0;
+
+    int n = 0;
+
+    for (int i = builder->len - 1; i >= 0 && is_at(builder->mem[i]); i--) {
+        n++;
+    }
+
+    return n;
+}
+
 static struct lex_token*
 lex_add_token(struct lex_lexer* lexer, lex_token_type type, char* lexeme)
 {
@@ -123,7 +139,7 @@ lex_reset_state(struct lex_lexer* lexer)
 static void
 lex_tok_complete(struct lex_lexer* lexer, lex_token_type type)
 {
-    lex_add_token(lexer, type, sbuilder_return(&lexer->state.builder));
+    lex_add_token(lexer, type, sbuilder_clear(&lexer->state.builder));
     lex_reset_state(lexer);
 }
 
@@ -162,19 +178,19 @@ lex_validate(struct lex_lexer* lexer, lex_token_type type, char c)
         case 2:
             return is_anychar_noat(c) ? LV_CONT : LV_NOT;
         default: {
-            int consec = sbuilder_num_consec(builder, is_at, true);
+            int consec_ats = num_at_back(builder);
 
             if (is_at(c)) {
                 if (is_at(lexer->lookahead)) {
                     return LV_CONT;
                 }
 
-                return ((consec & 1) == 0) ? LV_DONE : LV_NOT;
+                return ((consec_ats & 1) == 0) ? LV_DONE : LV_NOT;
             }
 
             // when reaching this point, an odd amount of @'s means
             // that this is the final non_a
-            if (consec & 1) {
+            if (consec_ats & 1) {
                 return is_anychar_noat(c) ? LV_DONE : LV_NOT;
             }
 
@@ -206,13 +222,13 @@ lex_validate(struct lex_lexer* lexer, lex_token_type type, char c)
     case LT_S_ALNUM:
         return is_alnum(c) ? LV_DONE_WHEN_DELIM : LV_NOT;
     case LT_S_ANYCHAR: {
-        int consec_at = sbuilder_num_consec(builder, is_at, true);
+        int consec_ats = num_at_back(builder);
 
         if (is_at(c)) {
-            if (!is_at(lexer->lookahead) && (consec_at & 1))
+            if (!is_at(lexer->lookahead) && (consec_ats & 1))
 
                 return LV_CONT;
-        } else if (consec_at & 1)
+        } else if (consec_ats & 1)
             return LV_NOT;
 
         return is_anychar_noat(c) ? LV_DONE_WHEN_DELIM : LV_NOT;
@@ -307,8 +323,7 @@ lex_advance(struct lex_lexer* lexer)
 
         sbuilder_write_char(&lexer->state.builder, c);
 
-        lex_add_token(lexer, LT_INVALID,
-                      sbuilder_return(&lexer->state.builder));
+        lex_add_token(lexer, LT_INVALID, sbuilder_clear(&lexer->state.builder));
         lex_reset_state(lexer);
 
         return ST_OK;
@@ -375,13 +390,8 @@ lex_create(struct context* ctx)
 e_statuscode
 lex_init(struct lex_lexer* lexer, struct context* ctx)
 {
-    if (sbuilder_init(&lexer->state.builder, SBUILDER_DEFAULT_CAP) != 0) {
-        return ST_INIT_FAIL;
-    }
-
-    if (sbuilder_init(&lexer->buf, SBUILDER_DEFAULT_CAP) != 0) {
-        return ST_INIT_FAIL;
-    }
+    lexer->state.builder = sbuilder_new();
+    lexer->buf = sbuilder_new();
 
     if (!ctx) {
         return ST_INIT_FAIL;

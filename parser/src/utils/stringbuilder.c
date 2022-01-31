@@ -1,12 +1,16 @@
 
 #include "utils/stringbuilder.h"
+#include "utils/statuscode.h"
+#include <assert.h>
 #include <stdio.h>
 
 static int
-sbuilder_verify_cap(struct sbuilder* builder)
+sbuilder_reserve(struct sbuilder* builder, size_t length)
 {
-    if (!builder->cap)
-        return 2;
+    assert(builder->cap);
+    assert(SBUILDER_DEFAULT_CAP_MULT /* sbuilder default cap mult not set */);
+
+    builder->len += length;
 
     if (builder->len >= builder->cap) {
         builder->cap *=
@@ -14,18 +18,33 @@ sbuilder_verify_cap(struct sbuilder* builder)
                                          (builder->len % builder->cap != 0));
 
         if (builder->mem) {
-            builder->mem = realloc(builder->mem,
-                                   (sizeof *builder->mem) * (builder->cap + 1));
+            size_t new_size = (sizeof *builder->mem) * (builder->cap + 1);
 
-            if (!builder->mem)
-                return 1;
+            builder->mem = realloc(builder->mem, new_size);
+
+            if (!builder->mem) {
+                return ST_MALLOC_ERROR;
+            }
 
             memset(builder->mem + builder->len, 0,
                    builder->cap + 1 - builder->len);
         }
     }
 
-    return 0;
+    return ST_OK;
+}
+
+struct sbuilder
+sbuilder_new()
+{
+    assert(SBUILDER_DEFAULT_CAP /* SBUILDER_DEFAULT_CAP not set */);
+    struct sbuilder builder;
+
+    if (sbuilder_init(&builder, SBUILDER_DEFAULT_CAP) != ST_OK) {
+        assert(false);
+    }
+
+    return builder;
 }
 
 int
@@ -57,11 +76,31 @@ sbuilder_destroy(struct sbuilder* builder)
     builder->mem = NULL;
 }
 
-void
+char*
 sbuilder_clear(struct sbuilder* builder)
 {
+    if (!builder->mem)
+        return NULL;
+
+    char* ret = strdup(builder->mem);
+
     builder->len = 0;
     memset(builder->mem, 0, builder->cap + 1);
+
+    return ret;
+}
+
+char*
+sbuilder_term(struct sbuilder* builder)
+{
+    if (!builder->mem)
+        return NULL;
+
+    char* ret = strdup(builder->mem);
+
+    sbuilder_destroy(builder);
+
+    return ret;
 }
 
 int
@@ -72,9 +111,8 @@ sbuilder_write(struct sbuilder* builder, const char* addition)
 
     int length = strlen(addition);
     int initial_length = builder->len;
-    builder->len += length;
 
-    int verified = sbuilder_verify_cap(builder);
+    int verified = sbuilder_reserve(builder, length);
     if (verified != 0)
         return verified;
 
@@ -133,9 +171,8 @@ sbuilder_write_char(struct sbuilder* builder, char c)
         return 2;
 
     int initial_length = builder->len;
-    builder->len += 1;
 
-    int verified = sbuilder_verify_cap(builder);
+    int verified = sbuilder_reserve(builder, 1);
     if (verified != 0)
         return verified;
 
@@ -153,56 +190,8 @@ sbuilder_back(struct sbuilder* builder)
     return builder->mem[builder->len - 1];
 }
 
-int
-sbuilder_num_consec(struct sbuilder* builder, bool (*func)(char), bool back)
-{
-    if (!builder->len)
-        return 0;
-
-    int n = 0;
-
-    if (back)
-        for (int i = builder->len - 1; i >= 0 && func(builder->mem[i]); i--) {
-
-            n++;
-        }
-    else
-        for (int i = 0; i < builder->len && func(builder->mem[i]); i++) {
-
-            n++;
-        }
-
-    return n;
-}
-
 const char*
 sbuilder_to_string(const struct sbuilder* builder)
 {
     return (const char*)builder->mem;
-}
-
-char*
-sbuilder_return(struct sbuilder* builder)
-{
-    if (!builder->mem)
-        return NULL;
-
-    char* ret = strdup(builder->mem);
-
-    sbuilder_clear(builder);
-
-    return ret;
-}
-
-char*
-sbuilder_complete(struct sbuilder* builder)
-{
-    if (!builder->mem)
-        return NULL;
-
-    char* ret = strdup(builder->mem);
-
-    sbuilder_destroy(builder);
-
-    return ret;
 }

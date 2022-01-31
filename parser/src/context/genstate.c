@@ -80,18 +80,12 @@ posctx_fn_free(struct posctx_state* state)
 char*
 posctx_fn_to_string(struct posctx_state* state)
 {
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 50) != ST_OK) {
-        assert(false);
-
-        return NULL;
-    }
+    struct sbuilder builder = sbuilder_new();
 
     sbuilder_writef(&builder, "%s (line: %zu, column: %zu)", state->origin,
                     state->line, state->col);
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }
 
 struct ctx_state*
@@ -139,18 +133,12 @@ tagctx_fn_free(struct tagctx_state* state)
 char*
 tagctx_fn_to_string(struct tagctx_state* state)
 {
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 20) != ST_OK) {
-        assert(false);
-
-        return NULL;
-    }
+    struct sbuilder builder = sbuilder_new();
 
     sbuilder_writef(&builder, "tag %s (line %zu, column %zu)", state->name,
                     state->line, state->col);
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }
 
 struct ctx_state*

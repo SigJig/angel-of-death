@@ -35,7 +35,7 @@ void tag_base_free(struct tag_base* tag);
 
 struct tag_interface* tag_i_get(const char* key);
 
-void tags_init();
-void tags_cleanup();
+void tags_init(void);
+void tags_cleanup(void);
 
 #endif // TAGS_BASE_H

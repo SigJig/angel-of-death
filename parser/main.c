@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 void
-test_hashtable()
+test_hashtable(void)
 {
     struct hash_table* ht = ht_create(31);
 
@@ -41,7 +41,7 @@ from_example(const char* path)
     FILE* fp = fopen(path, "r");
     assert(fp);
 
-    struct context* ctx = ctx_create(NONE);
+    struct context* ctx = ctx_create(DEBUG);
     ctx_push(ctx, posctx_create("lexer"));
 
     struct lex_lexer* lexer = lex_create(ctx);
@@ -121,7 +121,7 @@ main(int argc, char** argv)
     test_hashtable();
 
     from_example("/home/sig/Documents/development/projects/angel-of-death/"
-                 "parser/example.ged");
+                 "examples/example.ged");
     /*struct err_handler ehandler;
 
     ehandler_init(&ehandler);

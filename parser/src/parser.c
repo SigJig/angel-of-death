@@ -158,11 +158,7 @@ parser_line_free(struct parser_line* line)
 char*
 parser_line_to_string(struct parser_line* line)
 {
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 40) != ST_OK) {
-        return NULL;
-    }
+    struct sbuilder builder = sbuilder_new();
 
     sbuilder_writef(&builder, "<LINE %s:", line->level->lexeme);
 
@@ -186,7 +182,7 @@ parser_line_to_string(struct parser_line* line)
 
     sbuilder_write(&builder, ">");
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }
 
 void

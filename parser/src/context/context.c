@@ -57,13 +57,7 @@ stack_trace(struct dyn_array* stack)
         return NULL;
     }
 
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 100) != ST_OK) {
-        assert(false);
-
-        return NULL;
-    }
+    struct sbuilder builder = sbuilder_new();
 
     for (size_t i = 0; i < stack->len; i++) {
         struct ctx_state* state = stack_get_state(stack, i);
@@ -81,7 +75,7 @@ stack_trace(struct dyn_array* stack)
         free(state_string);
     }
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }
 
 static e_statuscode
@@ -108,7 +102,7 @@ log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
     if (!msg) {
         assert(false);
 
-        return ST_GEN_ERROR;
+        return ST_MALLOC_ERROR;
     }
 
     msg->level = level;
@@ -121,7 +115,7 @@ log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
     if (!mem) {
         assert(false);
 
-        return ST_GEN_ERROR;
+        return ST_MALLOC_ERROR;
     }
 
     *mem = msg;
@@ -151,7 +145,7 @@ log_vaddf(struct context* ctx, ctx_e_loglevel level, const char* format,
     }
 
     sbuilder_vwritef(&builder, format, args);
-    char* string = sbuilder_complete(&builder);
+    char* string = sbuilder_term(&builder);
 
     e_statuscode result = log_add(ctx, level, string);
 
@@ -163,13 +157,7 @@ log_vaddf(struct context* ctx, ctx_e_loglevel level, const char* format,
 static char*
 log_to_string(struct ctx_log_message* log)
 {
-    struct sbuilder builder;
-
-    if (sbuilder_init(&builder, 100) != ST_OK) {
-        assert(false /* log_to_string sbuilder init fail */);
-
-        return NULL;
-    }
+    struct sbuilder builder = sbuilder_new();
 
     char* trace = stack_trace(log->stack);
     sbuilder_write(&builder, trace);
@@ -202,7 +190,7 @@ log_to_string(struct ctx_log_message* log)
 
     sbuilder_writef(&builder, ">: %s", log->message);
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }
 
 struct context*
@@ -271,7 +259,7 @@ ctx_push(struct context* ctx, struct ctx_state* state)
     if (!mem) {
         assert(false /* Memory allocation for stack push failed */);
 
-        return ST_GEN_ERROR;
+        return ST_MALLOC_ERROR;
     }
 
     *mem = state;
@@ -331,7 +319,7 @@ ctx_log_to_string(struct context* ctx)
         free(lstr);
     }
 
-    return sbuilder_complete(&builder);
+    return sbuilder_term(&builder);
 }
 
 e_statuscode

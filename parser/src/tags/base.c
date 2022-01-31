@@ -27,7 +27,7 @@ static struct tag_interface invalid_interface = {
 static struct hash_table* tags_ht = NULL;
 
 static struct hash_table*
-tags_ht_instance()
+tags_ht_instance(void)
 {
     if (!tags_ht) {
         assert(false);
@@ -45,7 +45,7 @@ tag_base_free(struct tag_base* tag)
 }
 
 void
-tags_init()
+tags_init(void)
 {
     assert(!tags_ht /* Tag hashtable has already been initialized */);
 
@@ -78,7 +78,7 @@ tags_init()
 }
 
 void
-tags_cleanup()
+tags_cleanup(void)
 {
     if (!tags_ht) {
         return;
