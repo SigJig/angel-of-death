@@ -6,12 +6,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-static void
-state_free(struct ctx_state* state)
-{
-    (*state->free)(state);
-}
-
 static struct ctx_state*
 stack_get_state(struct dyn_array* stack, size_t index)
 {
@@ -26,7 +20,7 @@ stack_free(struct dyn_array* stack)
 
         assert(state);
 
-        state_free(state);
+        ctx_state_destroy(state);
     }
 
     da_free(stack);
@@ -44,7 +38,7 @@ stack_copy(struct dyn_array* stack)
         struct ctx_state* state = stack_get_state(stack, i);
         assert(state);
 
-        *mem = (*state->copy)(state);
+        *mem = state->interface->copy(state);
     }
 
     return copy;
@@ -62,13 +56,13 @@ stack_trace(struct dyn_array* stack)
     for (size_t i = 0; i < stack->len; i++) {
         struct ctx_state* state = stack_get_state(stack, i);
 
-        if (!stack) {
+        if (!state) {
             assert(false);
 
             continue;
         }
 
-        char* state_string = (*state->to_string)(state);
+        char* state_string = state->interface->to_string(state);
 
         sbuilder_writef(&builder, "in <%s>\n", state_string);
 
@@ -81,12 +75,12 @@ stack_trace(struct dyn_array* stack)
 static e_statuscode
 log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
 {
-    if (level < ctx->log_level) {
-        return ST_NOT_OK;
-    }
-
     if (level == CRITICAL) {
         ctx->can_continue = false;
+    }
+
+    if (level < ctx->log_level) {
+        return ST_NOT_OK;
     }
 
     struct ctx_state* state = ctx_state(ctx);
@@ -193,6 +187,34 @@ log_to_string(struct ctx_log_message* log)
     return sbuilder_term(&builder);
 }
 
+struct ctx_state*
+ctx_state_create(const struct ctx_state_interface* interface, void* data)
+{
+    struct ctx_state* state = malloc(sizeof *state);
+
+    if (!state) {
+        assert(false);
+
+        return NULL;
+    }
+
+    state->interface = interface;
+    *(void**)&state->data = data;
+
+    return state;
+}
+
+void
+ctx_state_destroy(struct ctx_state* state)
+{
+    if (!state) {
+        return;
+    }
+
+    state->interface->free(state);
+    free(state);
+}
+
 struct context*
 ctx_create(ctx_e_loglevel log_level)
 {
@@ -277,7 +299,7 @@ ctx_pop(struct context* ctx)
 
     struct ctx_state* state = *(struct ctx_state**)da_pop(ctx->stack);
 
-    state_free(state);
+    ctx_state_destroy(state);
 
     return ST_OK;
 }

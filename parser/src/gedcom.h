@@ -14,7 +14,7 @@ struct ged_record {
     char* xref;
     char* tag;
 
-    struct tag_base* value;
+    struct tag* value;
 
     struct ged_record* children;
     struct ged_record* next;

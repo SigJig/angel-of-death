@@ -5,25 +5,33 @@
 #include <stdlib.h>
 #include <string.h>
 
+static const struct ctx_state_interface posctx_i = {.free = posctx_fn_free,
+                                                    .to_string =
+                                                        posctx_fn_to_string,
+                                                    .copy = posctx_fn_copy};
+
 struct ctx_state*
 posctx_create(const char* origin)
 {
-    struct posctx_state* state = malloc(sizeof *state);
+    struct posctx_data* data = malloc(sizeof *data);
 
-    state->origin = origin;
-    state->free = (fn_state_free)posctx_fn_free;
-    state->to_string = (fn_state_to_string)posctx_fn_to_string;
-    state->copy = (fn_state_copy)posctx_fn_copy;
-    state->line = 0;
-    state->col = 0;
+    if (!data) {
+        assert(data);
 
-    return (struct ctx_state*)state;
+        return NULL;
+    }
+
+    data->origin = origin;
+    data->line = 0;
+    data->col = 0;
+
+    return ctx_state_create(&posctx_i, data);
 }
 
-struct posctx_state*
-posstate_from_ctx(struct context* ctx)
+static struct posctx_data*
+posdata_from_ctx(struct context* ctx)
 {
-    struct posctx_state* state = (struct posctx_state*)ctx_state(ctx);
+    struct ctx_state* state = ctx_state(ctx);
 
     if (!state) {
         assert(false);
@@ -31,118 +39,133 @@ posstate_from_ctx(struct context* ctx)
         return NULL;
     }
 
-    return state;
+    return state->data;
 }
 
 void
 posctx_update_line(struct context* ctx, size_t line)
 {
-    struct posctx_state* state = posstate_from_ctx(ctx);
+    struct posctx_data* data = posdata_from_ctx(ctx);
 
-    if (!state) {
+    if (!data) {
         return;
     }
 
-    state->line = line;
+    data->line = line;
 }
 
 void
 posctx_update_col(struct context* ctx, size_t col)
 {
-    struct posctx_state* state = posstate_from_ctx(ctx);
+    struct posctx_data* data = posdata_from_ctx(ctx);
 
-    if (!state) {
+    if (!data) {
         return;
     }
 
-    state->col = col;
+    data->col = col;
 }
 
 void
 posctx_update(struct context* ctx, size_t line, size_t col)
 {
-    struct posctx_state* state = posstate_from_ctx(ctx);
+    struct posctx_data* data = posdata_from_ctx(ctx);
 
-    if (!state) {
+    if (!data) {
         return;
     }
 
-    state->line = line;
-    state->col = col;
+    data->line = line;
+    data->col = col;
 }
 
 void
-posctx_fn_free(struct posctx_state* state)
+posctx_fn_free(struct ctx_state* state)
 {
-    free(state);
+    free(state->data);
 }
 
 char*
-posctx_fn_to_string(struct posctx_state* state)
+posctx_fn_to_string(struct ctx_state* state)
 {
     struct sbuilder builder = sbuilder_new();
+    struct posctx_data* data = state->data;
 
-    sbuilder_writef(&builder, "%s (line: %zu, column: %zu)", state->origin,
-                    state->line, state->col);
+    sbuilder_writef(&builder, "%s (line: %zu, column: %zu)", data->origin,
+                    data->line, data->col);
 
     return sbuilder_term(&builder);
 }
 
 struct ctx_state*
-posctx_fn_copy(struct posctx_state* state)
+posctx_fn_copy(struct ctx_state* state)
 {
-    struct posctx_state* copy =
-        (struct posctx_state*)posctx_create(state->origin);
+    struct posctx_data* orig_data = state->data;
+    struct ctx_state* copy = posctx_create(orig_data->origin);
+    struct posctx_data* copy_data = copy->data;
 
-    copy->line = state->line;
-    copy->col = state->col;
+    if (!copy) {
+        assert(false);
 
-    return (struct ctx_state*)copy;
+        return NULL;
+    }
+
+    copy_data->line = orig_data->line;
+    copy_data->col = orig_data->col;
+
+    return copy;
 }
+
+static struct ctx_state_interface tagctx_i = {.free = tagctx_fn_free,
+                                              .to_string = tagctx_fn_to_string,
+                                              .copy = tagctx_fn_copy};
 
 struct ctx_state*
 tagctx_create(char* name, size_t line, size_t col)
 {
-    struct tagctx_state* state = malloc(sizeof *state);
+    struct tagctx_data* data = malloc(sizeof *data);
 
-    if (!state) {
+    if (!data) {
+        assert(false);
+
         return NULL;
     }
 
-    state->free = (fn_state_free)tagctx_fn_free;
-    state->to_string = (fn_state_to_string)tagctx_fn_to_string;
-    state->copy = (fn_state_copy)tagctx_fn_copy;
-    state->name = strdup(name);
-    state->line = line;
-    state->col = col;
+    data->name = strdup(name);
+    data->line = line;
+    data->col = col;
 
-    return (struct ctx_state*)state;
+    return ctx_state_create(&tagctx_i, data);
 }
 
 void
-tagctx_fn_free(struct tagctx_state* state)
+tagctx_fn_free(struct ctx_state* state)
 {
     if (!state) {
         return;
     }
 
-    free(state->name);
-    free(state);
+    struct tagctx_data* data = state->data;
+    free(data->name);
+    free(data);
 }
 
 char*
-tagctx_fn_to_string(struct tagctx_state* state)
+tagctx_fn_to_string(struct ctx_state* state)
 {
     struct sbuilder builder = sbuilder_new();
+    struct tagctx_data* data = state->data;
 
-    sbuilder_writef(&builder, "tag %s (line %zu, column %zu)", state->name,
-                    state->line, state->col);
+    sbuilder_writef(&builder, "tag %s (line %zu, column %zu)", data->name,
+                    data->line, data->col);
 
     return sbuilder_term(&builder);
 }
 
 struct ctx_state*
-tagctx_fn_copy(struct tagctx_state* state)
+tagctx_fn_copy(struct ctx_state* state)
 {
-    return tagctx_create(state->name, state->line, state->col);
+    struct tagctx_data* data = state->data;
+
+    return tagctx_create(data->name, data->line, data->col);
 }

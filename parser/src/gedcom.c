@@ -166,13 +166,11 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     }
 
     if (line->line_value) {
-        struct tag_interface* interface = tag_i_get(rec->tag);
-
         ctx_push(ged->ctx,
                  tagctx_create(rec->tag, line->tag->line, line->tag->col));
 
         rec->value =
-            (*interface->create)(interface, rec, line->line_value, ged->ctx);
+            tag_create(tag_i_get(rec->tag), ged->ctx, rec, line->line_value);
 
         ctx_pop(ged->ctx);
     }
@@ -266,7 +264,7 @@ ged_record_free(struct ged_record* rec)
     }
 
     if (rec->value) {
-        (*rec->value->interface->free)(rec->value);
+        tag_free(rec->value);
     }
 
     struct ged_record* child = rec->children;

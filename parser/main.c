@@ -120,8 +120,10 @@ main(int argc, char** argv)
 {
     test_hashtable();
 
+#if 1
     from_example("/home/sig/Documents/development/projects/angel-of-death/"
                  "examples/example.ged");
+#endif
     /*struct err_handler ehandler;
 
     ehandler_init(&ehandler);

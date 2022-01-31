@@ -7,21 +7,19 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define CTX_STATE_INTERFACE                                                    \
-    fn_state_to_string to_string;                                              \
-    fn_state_free free;                                                        \
-    fn_state_copy copy
+typedef enum { DEBUG = 0, INFO, WARNING, ERROR, CRITICAL, NONE } ctx_e_loglevel;
 
 struct ctx_state;
 
-typedef char* (*fn_state_to_string)(struct ctx_state*);
-typedef void (*fn_state_free)(struct ctx_state*);
-typedef struct ctx_state* (*fn_state_copy)(struct ctx_state*);
-
-typedef enum { DEBUG = 0, INFO, WARNING, ERROR, CRITICAL, NONE } ctx_e_loglevel;
+struct ctx_state_interface {
+    char* (*to_string)(struct ctx_state*);
+    void (*free)(struct ctx_state*);
+    struct ctx_state* (*copy)(struct ctx_state*);
+};
 
 struct ctx_state {
-    CTX_STATE_INTERFACE;
+    const struct ctx_state_interface* interface;
+    void* const data;
 };
 
 struct ctx_log_message {
@@ -36,6 +34,11 @@ struct context {
     struct dyn_array* stack; // array of ctx_state
     struct dyn_array* log;   // array of ctx_log_message
 };
+
+struct ctx_state* ctx_state_create(const struct ctx_state_interface* interface,
+                                   void* data);
+
+void ctx_state_destroy(struct ctx_state* state);
 
 struct context* ctx_create(ctx_e_loglevel log_level);
 void ctx_free(struct context* ctx);

@@ -6,22 +6,22 @@
 #include "tags/base.h"
 #include "tags/month.h"
 
-static struct tag_invalid*
-tag_invalid_create(struct tag_interface* interface, struct ged_record* rec,
-                   struct lex_token* token, struct context* ctx)
+static void* const
+tag_invalid_create(struct tag* tag, struct ged_record* rec,
+                   struct lex_token* token)
 {
-    ctx_critf(ctx, "invalid tag name");
+    ctx_critf(tag->ctx, "invalid tag name");
 
     return NULL;
 }
 
 static void
-tag_invalid_free(struct tag_base* tag)
+tag_invalid_free(struct tag* tag)
 {
 }
 
-static struct tag_interface invalid_interface = {
-    .create = (fn_create)tag_invalid_create, .free = (fn_free)tag_invalid_free};
+static const struct tag_interface invalid_interface = {
+    .create = tag_invalid_create, .free = tag_invalid_free};
 
 // Hashtable of tag interfaces
 static struct hash_table* tags_ht = NULL;
@@ -36,12 +36,34 @@ tags_ht_instance(void)
     return tags_ht;
 }
 
-void
-tag_base_free(struct tag_base* tag)
+struct tag*
+tag_create(const struct tag_interface* iface, struct context* ctx,
+           struct ged_record* rec, struct lex_token* tok)
 {
-    if (tag) {
-        free(tag);
+    struct tag* tag = malloc(sizeof *tag);
+
+    if (!tag) {
+        assert(false);
+
+        return NULL;
     }
+
+    tag->interface = iface;
+    tag->ctx = ctx;
+    *(void**)&tag->data = tag->interface->create(tag, rec, tok);
+
+    return tag;
+}
+
+void
+tag_free(struct tag* tag)
+{
+    if (!tag) {
+        return;
+    }
+
+    tag->interface->free(tag);
+    free(tag);
 }
 
 void
@@ -88,10 +110,10 @@ tags_cleanup(void)
     tags_ht = NULL;
 }
 
-struct tag_interface*
+const struct tag_interface*
 tag_i_get(const char* key)
 {
-    struct tag_interface* tag = ht_get(tags_ht_instance(), key);
+    const struct tag_interface* tag = ht_get(tags_ht_instance(), key);
 
     if (!tag) {
         return &invalid_interface;
