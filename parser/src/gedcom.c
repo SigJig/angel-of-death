@@ -135,8 +135,6 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     int level_parsed = atoi(level);
 
     if (strlen(level) > 1 && level[0] == '0') {
-        // the gedcom standard does not allow leading 0s on levels
-        // TODO: this should be warning
         ctx_warnf(ged->ctx,
                   "gedcom standard disallows leading 0 on level "
                   "declarations (%s)",

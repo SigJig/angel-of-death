@@ -225,9 +225,9 @@ lex_validate(struct lex_lexer* lexer, lex_token_type type, char c)
         int consec_ats = num_at_back(builder);
 
         if (is_at(c)) {
-            if (!is_at(lexer->lookahead) && (consec_ats & 1))
-
+            if (!is_at(lexer->lookahead) && (consec_ats & 1)) {
                 return LV_CONT;
+            }
         } else if (consec_ats & 1)
             return LV_NOT;
 
@@ -260,13 +260,6 @@ lex_advance(struct lex_lexer* lexer)
             continue;
 
         lex_e_valid* status_cache = &lexer->state.status[i];
-        bool write = false;
-
-        // if eof has been reached, return the first possible
-        /*if (lexer->eof_reached) {
-            goto done;
-        }*/
-
         lex_e_valid status = lex_validate(lexer, type, c);
 
         switch (status) {

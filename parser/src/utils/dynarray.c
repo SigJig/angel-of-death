@@ -7,11 +7,11 @@
 
 #define MULT_FACTOR 2
 
-static void*
+static void**
 da_get_unsafe(struct dyn_array* da, size_t index)
 {
     // cast because void* does not support pointer arithmetic
-    return (char*)da->mem + (index * sizeof(void*));
+    return (void**)((char*)da->mem + (index * sizeof(void*)));
 }
 
 struct dyn_array*
@@ -44,13 +44,18 @@ da_create(size_t cap)
 void
 da_free(struct dyn_array* da)
 {
-    if (da->mem)
+    if (!da) {
+        return;
+    }
+
+    if (da->mem) {
         free(da->mem);
-    if (da)
-        free(da);
+    }
+
+    free(da);
 }
 
-void*
+void**
 da_reserve(struct dyn_array* da)
 {
     da->len++;
@@ -76,7 +81,7 @@ da_get(struct dyn_array* da, size_t index)
     if (index >= da->len)
         return NULL;
 
-    return *(void**)da_get_unsafe(da, index);
+    return *da_get_unsafe(da, index);
 }
 
 void*
@@ -106,13 +111,13 @@ da_pop(struct dyn_array* da)
 
     // da->len--;
 
-    return *(void**)da_get_unsafe(da, --da->len);
+    return *da_get_unsafe(da, --da->len);
 }
 
 e_statuscode
 da_push(struct dyn_array* da, void* data)
 {
-    void** mem = (void**)da_reserve(da);
+    void** mem = da_reserve(da);
 
     if (!mem) {
         assert(false);

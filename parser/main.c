@@ -92,7 +92,7 @@ from_example(const char* path)
     printf("LEXER DONE: \n");
     struct lex_token* tok = lexer->token_first;
 
-#if 1
+#if 0
     int index = 0;
     while (tok /* && index < 0*/) {
         if (tok->type != LT_DELIM && tok->type != LT_WHITESPACE)
@@ -111,7 +111,7 @@ from_example(const char* path)
     struct parser_line* line = presult.front;
 
     while (line) {
-#if 1
+#if 0
         char* str = parser_line_to_string(line);
         printf("%s\n", str);
         free(str);
@@ -127,14 +127,18 @@ from_example(const char* path)
         tmp = recfront;
         recfront = recfront->next;
 
+#if 0
         char* tostring = ged_record_to_string(tmp);
         printf("%s\n", tostring);
         free(tostring);
+#endif
 
         ged_record_free(tmp);
     }
 
+#if 0
     print_errors(ctx);
+#endif
 
     parser_result_destroy(&presult);
 #endif

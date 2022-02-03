@@ -14,7 +14,7 @@ struct dyn_array {
 struct dyn_array* da_create(size_t cap);
 void da_free(struct dyn_array* da);
 
-void* da_reserve(struct dyn_array* da);
+void** da_reserve(struct dyn_array* da);
 void* da_get(struct dyn_array* da, size_t index);
 void* da_front(struct dyn_array* da);
 void* da_back(struct dyn_array* da);
