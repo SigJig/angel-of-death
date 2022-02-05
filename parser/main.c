@@ -3,8 +3,8 @@
 #include "gedcom.h"
 #include "lexer.h"
 #include "parser.h"
-#include "utils/dynarray.h"
 #include "utils/hashmap.h"
+#include "utils/ptrarr.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -16,27 +16,27 @@ struct ehm {
 void
 test_dynarray(void)
 {
-    struct dyn_array* da = da_create(5);
+    ptr_arr pa = pa_create(5);
     struct ehm* e = malloc(sizeof *e);
     e->x = 3;
     e->y = 2;
 
-    da_push(da, (void*)5);
-    da_push(da, (void*)4);
-    da_push(da, (void*)3);
-    da_push(da, (void*)2);
-    da_push(da, (void*)1);
+    pa_push(pa, (void*)5);
+    pa_push(pa, (void*)4);
+    pa_push(pa, (void*)3);
+    pa_push(pa, (void*)2);
+    pa_push(pa, (void*)1);
 
     for (int i = 0; i < 5; i++) {
-        printf("dig %d\n", (int)da_pop(da));
+        printf("dig %d\n", (int)pa_pop(pa));
     }
 
-    da_push(da, e);
-    struct ehm* t = da_pop(da);
+    pa_push(pa, e);
+    struct ehm* t = pa_pop(pa);
     printf("%d, %d\n", t->x, t->y);
 
     free(e);
-    da_free(da);
+    pa_free(pa);
 }
 
 void
@@ -197,23 +197,23 @@ main(int argc, char** argv)
     parser_result_destroy(&result);
 
     int nums[10] = {0};
-    struct dyn_array* da = da_create(4, sizeof &nums);
+    ptr_arr pa = pa_create(4, sizeof &nums);
 
-    int** n = da_reserve(da);
+    int** n = pa_reserve(pa);
     *n = &nums[4];
     **n += 1;
 
-    int** x = da_reserve(da);
+    int** x = pa_reserve(pa);
     *x = &nums[3];
     **x += 5;
 
-    int* l = *(int**)da_pop(da);
+    int* l = *(int**)pa_pop(pa);
     assert(l == &nums[3]);
 
-    int** s = da_pop(da);
+    int** s = pa_pop(pa);
     assert(*s == &nums[4]);
 
-    da_free(da);*/
+    pa_free(pa);*/
 
     return 0;
 }

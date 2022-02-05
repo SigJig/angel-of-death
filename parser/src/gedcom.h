@@ -5,7 +5,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "tags/base.h"
-#include "utils/dynarray.h"
+#include "utils/ptrarr.h"
 #include "utils/stringbuilder.h"
 #include <stdint.h>
 

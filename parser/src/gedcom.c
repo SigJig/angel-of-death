@@ -5,8 +5,8 @@
 #include "context/context.h"
 #include "context/genstate.h"
 #include "gedcom.h"
-#include "utils/dynarray.h"
 #include "utils/hashmap.h"
+#include "utils/ptrarr.h"
 
 #define DEFAULT_STACK_CAP 100
 #define DEFAULT_STACK_CAP_MULT 2
@@ -18,7 +18,7 @@
 struct ged_builder {
     uint8_t cur_level;
 
-    struct dyn_array* stack;
+    ptr_arr stack;
 
     struct hash_table* xrefs;
     struct context* ctx;
@@ -30,7 +30,7 @@ builder_init(struct ged_builder* ged, struct context* ctx)
     assert(DEFAULT_STACK_CAP);
 
     ged->cur_level = 0;
-    ged->stack = da_create(DEFAULT_STACK_CAP);
+    ged->stack = pa_create(DEFAULT_STACK_CAP);
     ged->xrefs = ht_create(DEFAULT_XREFS_CAP);
     ged->ctx = ctx;
 
@@ -42,17 +42,17 @@ builder_init(struct ged_builder* ged, struct context* ctx)
 static void
 builder_destroy(struct ged_builder* ged)
 {
-    if (ged->stack->len) {
+    if (pa_len(ged->stack)) {
         ctx_debugf(ged->ctx,
                    "ged_builder destroying with non-empty stack (%zu items)",
-                   ged->stack->len);
+                   pa_len(ged->stack));
 
-        for (size_t i = 0; i < ged->stack->len; i++) {
-            ged_record_free(da_get(ged->stack, i));
+        for (size_t i = 0; i < pa_len(ged->stack); i++) {
+            ged_record_free(pa_get(ged->stack, i));
         }
     }
 
-    da_free(ged->stack);
+    pa_free(ged->stack);
     ht_free(ged->xrefs);
     ged->ctx = NULL;
 
@@ -64,7 +64,7 @@ builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
 {
     ged->cur_level = rec->level;
 
-    e_statuscode result = da_push(ged->stack, rec);
+    e_statuscode result = pa_push(ged->stack, rec);
 
     if (result != ST_OK) {
         return result;
@@ -76,7 +76,7 @@ builder_stack_add(struct ged_builder* ged, struct ged_record* rec)
 static e_statuscode
 builder_child_add(struct ged_builder* ged, struct ged_record* rec)
 {
-    struct ged_record* back = da_back(ged->stack);
+    struct ged_record* back = pa_back(ged->stack);
 
     if (!back) {
         return ST_GEN_ERROR;
@@ -102,14 +102,14 @@ builder_child_add(struct ged_builder* ged, struct ged_record* rec)
 static struct ged_record*
 builder_stack_pop(struct ged_builder* ged)
 {
-    if (!ged->stack->len) {
+    if (!pa_len(ged->stack)) {
         return NULL;
     }
 
-    struct ged_record* result = da_pop(ged->stack);
+    struct ged_record* result = pa_pop(ged->stack);
 
-    if (ged->stack->len) {
-        struct ged_record* back = da_back(ged->stack);
+    if (pa_len(ged->stack)) {
+        struct ged_record* back = pa_back(ged->stack);
 
         ged->cur_level = back->level;
     } else {
@@ -182,12 +182,12 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
             goto error;
         }
     } else {
-        while (ged->stack->len && rec->level <= ged->cur_level) {
+        while (pa_len(ged->stack) && rec->level <= ged->cur_level) {
             builder_stack_pop(ged);
         }
     }
 
-    if (ged->stack->len) {
+    if (pa_len(ged->stack)) {
         builder_child_add(ged, rec);
     }
 

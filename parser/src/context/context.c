@@ -7,15 +7,15 @@
 #include <stdlib.h>
 
 static struct ctx_state*
-stack_get_state(struct dyn_array* stack, size_t index)
+stack_get_state(ptr_arr stack, size_t index)
 {
-    return da_get(stack, index);
+    return pa_get(stack, index);
 }
 
 static void
-stack_free(struct dyn_array* stack)
+stack_free(ptr_arr stack)
 {
-    for (size_t i = 0; i < stack->len; i++) {
+    for (size_t i = 0; i < pa_len(stack); i++) {
         struct ctx_state* state = stack_get_state(stack, i);
 
         assert(state);
@@ -23,34 +23,34 @@ stack_free(struct dyn_array* stack)
         ctx_state_destroy(state);
     }
 
-    da_free(stack);
+    pa_free(stack);
 }
 
-static struct dyn_array*
-stack_copy(struct dyn_array* stack)
+static ptr_arr
+stack_copy(ptr_arr stack)
 {
-    struct dyn_array* copy = da_create(stack->len);
+    ptr_arr copy = pa_create(pa_len(stack));
 
-    for (size_t i = 0; i < stack->len; i++) {
+    for (size_t i = 0; i < pa_len(stack); i++) {
         struct ctx_state* state = stack_get_state(stack, i);
         assert(state);
 
-        da_push(copy, state->interface->copy(state));
+        pa_push(copy, state->interface->copy(state));
     }
 
     return copy;
 }
 
 static char*
-stack_trace(struct dyn_array* stack)
+stack_trace(ptr_arr stack)
 {
-    if (!stack->len) {
+    if (!pa_len(stack)) {
         return NULL;
     }
 
     struct sbuilder builder = sbuilder_new();
 
-    for (size_t i = 0; i < stack->len; i++) {
+    for (size_t i = 0; i < pa_len(stack); i++) {
         struct ctx_state* state = stack_get_state(stack, i);
 
         if (!state) {
@@ -100,7 +100,7 @@ log_add(struct context* ctx, ctx_e_loglevel level, const char* message)
     msg->message = strdup(message);
     msg->stack = stack_copy(ctx->stack);
 
-    da_push(ctx->log, msg);
+    pa_push(ctx->log, msg);
 
     return ST_OK;
 }
@@ -215,8 +215,8 @@ ctx_create(ctx_e_loglevel log_level)
 
     ctx->can_continue = true;
     ctx->log_level = log_level;
-    ctx->stack = da_create(100);
-    ctx->log = da_create(10);
+    ctx->stack = pa_create(100);
+    ctx->log = pa_create(10);
 
     if (!(ctx->log && ctx->stack)) {
         assert(false /* ctx members initialization failed */);
@@ -236,15 +236,15 @@ ctx_free(struct context* ctx)
     }
 
     if (ctx->log) {
-        for (size_t i = 0; i < ctx->log->len; i++) {
-            struct ctx_log_message* log = da_get(ctx->log, i);
+        for (size_t i = 0; i < pa_len(ctx->log); i++) {
+            struct ctx_log_message* log = pa_get(ctx->log, i);
 
             assert(log);
 
             log_destroy(log);
         }
 
-        da_free(ctx->log);
+        pa_free(ctx->log);
     }
 
     if (ctx->stack) {
@@ -263,18 +263,18 @@ ctx_continue(struct context* ctx)
 e_statuscode
 ctx_push(struct context* ctx, struct ctx_state* state)
 {
-    return da_push(ctx->stack, state);
+    return pa_push(ctx->stack, state);
 }
 
 e_statuscode
 ctx_pop(struct context* ctx)
 {
-    if (!ctx->stack->len) {
+    if (!pa_len(ctx->stack)) {
         assert(false /* Stack pop attempted on empty stack */);
         return ST_GEN_ERROR;
     }
 
-    struct ctx_state* state = da_pop(ctx->stack);
+    struct ctx_state* state = pa_pop(ctx->stack);
 
     ctx_state_destroy(state);
 
@@ -284,12 +284,12 @@ ctx_pop(struct context* ctx)
 struct ctx_state*
 ctx_state(struct context* ctx)
 {
-    if (!ctx->stack->len) {
+    if (!pa_len(ctx->stack)) {
         assert(false /* No states on stack */);
         return NULL;
     }
 
-    struct ctx_state* state = da_back(ctx->stack);
+    struct ctx_state* state = pa_back(ctx->stack);
 
     return state;
 }
@@ -297,7 +297,7 @@ ctx_state(struct context* ctx)
 char*
 ctx_log_to_string(struct context* ctx)
 {
-    if (!ctx->log->len) {
+    if (!pa_len(ctx->log)) {
         return NULL;
     }
 
@@ -309,8 +309,8 @@ ctx_log_to_string(struct context* ctx)
         return NULL;
     }
 
-    for (size_t i = 0; i < ctx->log->len; i++) {
-        char* lstr = log_to_string(da_get(ctx->log, i));
+    for (size_t i = 0; i < pa_len(ctx->log); i++) {
+        char* lstr = log_to_string(pa_get(ctx->log, i));
 
         sbuilder_writef(&builder, "%s\n", lstr);
 

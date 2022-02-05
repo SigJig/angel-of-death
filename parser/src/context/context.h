@@ -2,7 +2,7 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include "utils/dynarray.h"
+#include "utils/ptrarr.h"
 #include "utils/statuscode.h"
 #include <stdarg.h>
 #include <stdbool.h>
@@ -25,14 +25,14 @@ struct ctx_state {
 struct ctx_log_message {
     char* message;
     ctx_e_loglevel level;
-    struct dyn_array* stack; // copy of the current context stack
+    ptr_arr stack; // copy of the current context stack
 };
 
 struct context {
     bool can_continue;
     ctx_e_loglevel log_level;
-    struct dyn_array* stack; // array of ctx_state
-    struct dyn_array* log;   // array of ctx_log_message
+    ptr_arr stack; // array of ctx_state
+    ptr_arr log;   // array of ctx_log_message
 };
 
 struct ctx_state* ctx_state_create(const struct ctx_state_interface* interface,
