@@ -117,10 +117,11 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     struct ged_record* rec = malloc(sizeof *rec);
 
     rec->level = 0;
-    rec->xref = NULL;
     rec->tag = NULL;
-    rec->value = NULL;
+    rec->value = pa_create(10);
     rec->children = pa_create(10);
+    rec->elem.interface = NULL;
+    rec->elem.data = NULL;
 
     char* level = line->level->lexeme;
     int level_parsed = atoi(level);
@@ -139,13 +140,13 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     rec->level = level_parsed;
 
     if (line->xref) {
-        rec->xref = strdup(line->xref->lexeme);
+        const char* xref = line->xref->lexeme;
 
         // add to symbol table
-        if (ht_get(ged->xrefs, rec->xref) != NULL) {
-            ctx_errf(ged->ctx, "xref %s already defined", rec->xref);
+        if (ht_get(ged->xrefs, xref) != NULL) {
+            ctx_errf(ged->ctx, "xref %s already defined", xref);
         } else {
-            ht_set(ged->xrefs, rec->xref, rec);
+            ht_set(ged->xrefs, xref, rec);
         }
     }
 
@@ -153,16 +154,15 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
 
     if (strlen(rec->tag) > 0 && rec->tag[0] == '_') {
         // TODO: Handle custom tags
+    } else {
+        rec->elem.interface = tag_i_get(rec->tag);
     }
 
     if (line->line_value) {
-        ctx_push(ged->ctx,
-                 tagctx_create(rec->tag, line->tag->line, line->tag->col));
+        for (struct lex_token* tok = line->line_value; tok; tok = tok->next) {
 
-        rec->value =
-            tag_create(tag_i_get(rec->tag), ged->ctx, rec, line->line_value);
-
-        ctx_pop(ged->ctx);
+            pa_push(rec->value, lex_token_copy(tok));
+        }
     }
 
     if (rec->level > ged->cur_level) {
@@ -241,16 +241,20 @@ ged_record_free(struct ged_record* rec)
         return;
     }
 
-    if (rec->xref) {
-        free(rec->xref);
-    }
-
     if (rec->tag) {
         free(rec->tag);
     }
 
+    if (rec->elem.interface) {
+        rec->elem.interface->free(rec->elem.data);
+    }
+
     if (rec->value) {
-        tag_free(rec->value);
+        for (size_t i = 0; i < pa_len(rec->value); i++) {
+            lex_token_free(pa_get(rec->value, i));
+        }
+
+        pa_free(rec->value);
     }
 
     for (size_t i = 0; i < pa_len(rec->children); i++) {
@@ -272,16 +276,10 @@ ged_record_to_string(struct ged_record* rec)
         sbuilder_write(&builder, "\t");
     }
 
-    sbuilder_writef(&builder, "%d: ", rec->level);
-
-    if (rec->xref) {
-        sbuilder_writef(&builder, " <xref: %s>", rec->xref);
-    }
-
-    sbuilder_writef(&builder, " <%s> (value)\n", rec->tag);
+    sbuilder_writef(&builder, "%d: <%s> (value)\n", rec->level, rec->tag);
 
     for (size_t i = 0; i < pa_len(rec->children); i++) {
-        struct ged_record* child = pa_get(rec->children, 0);
+        struct ged_record* child = pa_get(rec->children, i);
 
         char* chstr = ged_record_to_string(child);
         sbuilder_writef(&builder, "%s", chstr);

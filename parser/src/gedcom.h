@@ -11,10 +11,14 @@
 
 struct ged_record {
     uint8_t level;
-    char* xref;
     char* tag;
 
-    struct tag* value;
+    struct {
+        const struct tag_interface* interface;
+        void* data;
+    } elem;
+
+    ptr_arr value;
 
     ptr_arr children;
 };

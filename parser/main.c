@@ -124,8 +124,8 @@ from_example(const char* path)
 
     for (size_t i = 0; i < pa_len(arr); i++) {
 
-#if 0
-        char* tostring = ged_record_to_string(tmp);
+#if 1
+        char* tostring = ged_record_to_string(pa_get(arr, i));
         printf("%s\n", tostring);
         free(tostring);
 #endif
