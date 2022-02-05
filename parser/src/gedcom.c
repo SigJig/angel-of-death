@@ -82,17 +82,9 @@ builder_child_add(struct ged_builder* ged, struct ged_record* rec)
         return ST_GEN_ERROR;
     }
 
-    struct ged_record* last = back->children;
+    struct ged_record* last = pa_back(back->children);
 
-    if (!last) {
-        back->children = rec;
-    } else {
-        while (last->next) {
-            last = last->next;
-        }
-
-        last->next = rec;
-    }
+    pa_push(back->children, rec);
 
     ged->cur_level++;
 
@@ -128,8 +120,7 @@ ged_record_construct(struct ged_builder* ged, struct parser_line* line)
     rec->xref = NULL;
     rec->tag = NULL;
     rec->value = NULL;
-    rec->next = NULL;
-    rec->children = NULL;
+    rec->children = pa_create(10);
 
     char* level = line->level->lexeme;
     int level_parsed = atoi(level);
@@ -204,7 +195,7 @@ error:
     return NULL;
 }
 
-struct ged_record*
+ptr_arr
 ged_from_parser(struct parser_result result, struct context* ctx)
 {
     struct ged_builder ged;
@@ -217,8 +208,7 @@ ged_from_parser(struct parser_result result, struct context* ctx)
 
     struct parser_line* line = result.front;
 
-    struct ged_record* front = NULL;
-    struct ged_record* tmp = NULL;
+    ptr_arr arr = pa_create(100);
 
     while (line) {
         struct ged_record* cur = ged_record_construct(&ged, line);
@@ -228,22 +218,19 @@ ged_from_parser(struct parser_result result, struct context* ctx)
                        line->level->line);
         } else if (cur->level) {
             ctx_debugf(ctx, "skipping record level %d", cur->level);
-        } else if (tmp) {
-            tmp->next = cur;
-            tmp = cur;
         } else {
-            front = cur;
-            tmp = front;
+            pa_push(arr, cur);
         }
 
         line = line->next;
     }
+
     builder_stack_pop(&ged);
 
     builder_destroy(&ged);
     ctx_pop(ctx);
 
-    return front;
+    return arr;
 }
 
 void
@@ -266,15 +253,12 @@ ged_record_free(struct ged_record* rec)
         tag_free(rec->value);
     }
 
-    struct ged_record* child = rec->children;
-    struct ged_record* tmp = NULL;
+    for (size_t i = 0; i < pa_len(rec->children); i++) {
+        struct ged_record* child = pa_get(rec->children, i);
 
-    while (child) {
-        tmp = child;
-        child = child->next;
-
-        ged_record_free(tmp);
+        ged_record_free(child);
     }
+    pa_free(rec->children);
 
     free(rec);
 }
@@ -296,14 +280,12 @@ ged_record_to_string(struct ged_record* rec)
 
     sbuilder_writef(&builder, " <%s> (value)\n", rec->tag);
 
-    struct ged_record* child = rec->children;
+    for (size_t i = 0; i < pa_len(rec->children); i++) {
+        struct ged_record* child = pa_get(rec->children, 0);
 
-    while (child) {
         char* chstr = ged_record_to_string(child);
         sbuilder_writef(&builder, "%s", chstr);
         free(chstr);
-
-        child = child->next;
     }
 
     return sbuilder_term(&builder);

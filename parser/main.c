@@ -120,12 +120,9 @@ from_example(const char* path)
         line = line->next;
     }
 
-    struct ged_record* recfront = ged_from_parser(presult, ctx);
-    struct ged_record* tmp = NULL;
+    ptr_arr arr = ged_from_parser(presult, ctx);
 
-    while (recfront) {
-        tmp = recfront;
-        recfront = recfront->next;
+    for (size_t i = 0; i < pa_len(arr); i++) {
 
 #if 0
         char* tostring = ged_record_to_string(tmp);
@@ -133,8 +130,10 @@ from_example(const char* path)
         free(tostring);
 #endif
 
-        ged_record_free(tmp);
+        ged_record_free(pa_get(arr, i));
     }
+
+    pa_free(arr);
 
 #if 0
     print_errors(ctx);
@@ -160,60 +159,6 @@ main(int argc, char** argv)
     from_example("/home/sig/Documents/development/projects/angel-of-death/"
                  "examples/example.ged");
 #endif
-    /*struct err_handler ehandler;
-
-    ehandler_init(&ehandler);
-
-    struct lex_lexer* lexer = lex_create(&ehandler);
-
-    const char* teststring =
-        "0 @1NAME@ Jahck @anychar escape sequence @ hmm\n\r";
-
-    for (int i = 0; i <= strlen(teststring); i++)
-        lex_feed(lexer, teststring[i]);
-
-    struct lex_token* tok = lexer->token_first;
-
-    while (tok) {
-        printf("%d: %s\n", tok->type, tok->lexeme);
-
-        tok = tok->next;
-    }
-
-    struct parser_result result = parser_parse(lexer->token_first, &ehandler);
-    size_t len = ehandler_len(&ehandler);
-
-    if (len) {
-        for (size_t i = 0; i < len; i++) {
-            char* msg = emessage_to_string(ehandler_get(&ehandler, i));
-            printf("%s\n", msg);
-
-            free(msg);
-        }
-    }
-
-    ehandler_destroy(&ehandler);
-    lex_free(lexer);
-    parser_result_destroy(&result);
-
-    int nums[10] = {0};
-    ptr_arr pa = pa_create(4, sizeof &nums);
-
-    int** n = pa_reserve(pa);
-    *n = &nums[4];
-    **n += 1;
-
-    int** x = pa_reserve(pa);
-    *x = &nums[3];
-    **x += 5;
-
-    int* l = *(int**)pa_pop(pa);
-    assert(l == &nums[3]);
-
-    int** s = pa_pop(pa);
-    assert(*s == &nums[4]);
-
-    pa_free(pa);*/
 
     return 0;
 }

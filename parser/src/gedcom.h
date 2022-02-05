@@ -16,14 +16,12 @@ struct ged_record {
 
     struct tag* value;
 
-    struct ged_record* children;
-    struct ged_record* next;
+    ptr_arr children;
 };
 
 struct ged_builder;
 
-struct ged_record* ged_from_parser(struct parser_result result,
-                                   struct context* ctx);
+ptr_arr ged_from_parser(struct parser_result result, struct context* ctx);
 struct ged_record* ged_record_construct(struct ged_builder* ged,
                                         struct parser_line* line);
 
